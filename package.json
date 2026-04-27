@@ -1,0 +1,24 @@
+{
+  "name": "ridex",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Ride-hailing mini-platform — Database Application & Design group project",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "libs/*"
+  ],
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down",
+    "db:migrate": "docker compose exec api node dist/scripts/migrate.js",
+    "db:seed": "docker compose exec api node dist/scripts/seed.js"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

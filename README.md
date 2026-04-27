@@ -1,0 +1,119 @@
+# RideX — Ride-Hailing Mini-Platform
+
+Group project for **Database Application & Design** (Spring 2026, Inha University in Tashkent).
+Team leader submission only — see `LINKS.txt` for the deployed URL, GitHub URL, and team roster.
+
+> **Status:** scaffold. Each section below is a starting point that the team is expected to extend
+> and *be able to defend in viva*. The spec forbids AI-generated backend code that the team cannot
+> explain line by line.
+
+---
+
+## What this is
+
+A full-stack distributed ride-hailing platform: riders request rides, drivers accept and stream
+their location, the matcher service pairs them by geographic proximity, and an admin sees the live
+fleet. The system is built around three data stores (Postgres + PostGIS, Redis, Redpanda),
+two API styles (REST + WebSocket), and an Nginx gateway with two backend replicas behind it.
+
+| Capability | Implementation |
+|---|---|
+| Relational store | Postgres 16 with PostGIS |
+| Polyglot store(s) | Redis (live driver index, surge cache), PostGIS (spatial queries) |
+| Stream | Redpanda (Kafka-API compatible) for `driver.location` and `trip.events` topics |
+| REST API | NestJS + Fastify, OpenAPI / Swagger UI at `/docs` |
+| Non-REST API | WebSocket (Socket.IO) for live trip updates, geographic surge feed |
+| Gateway / LB | Nginx with two `api` replicas |
+| Batch pipeline | Nightly trip-aggregate job (cron + Node task runner) |
+| Stream pipeline | Surge multiplier computed off the location stream |
+| From-scratch | Consistent-hashing ring used by `matcher` to shard drivers across workers |
+| Observability | OpenTelemetry → Tempo (traces), Loki (logs), Prometheus (metrics), Grafana |
+
+---
+
+## One-command bring-up
+
+```bash
+cp .env.example .env          # edit secrets if needed
+docker compose up -d --build
+docker compose exec api node dist/scripts/migrate.js
+docker compose exec api node dist/scripts/seed.js
+open http://localhost            # gateway → web app
+open http://localhost/api/docs   # Swagger UI
+open http://localhost:3001       # Grafana (admin / admin)
+```
+
+> **Note on api scaling.** The compose file uses `deploy.replicas: 2` for
+> `api`. If your Docker Compose version ignores `deploy.replicas` outside
+> Swarm, run `docker compose up -d --scale api=2 --build` instead, or
+> declare two named services (as we did with `matcher-0` / `matcher-1`).
+> The Nginx upstream uses `resolve` so it round-robins as soon as Docker
+> DNS returns multiple A records.
+
+The whole stack boots behind a single public port (`80`/`443`). All stateful services use named
+volumes so data survives `docker compose down`.
+
+## Smoke test
+
+```bash
+curl -fsS http://localhost/api/healthz
+# expects: {"status":"ok"}
+```
+
+## Repository layout
+
+```
+ride-hailing/
+├── apps/
+│   ├── api/            # NestJS + Fastify REST API + Swagger
+│   └── web/            # React + Vite frontend (rider, driver, admin)
+├── services/
+│   ├── matcher/        # consumes location stream, matches drivers ↔ riders
+│   ├── ws-gateway/     # Socket.IO server for live updates
+│   └── ingestor/       # accepts driver pings → publishes to Redpanda
+├── libs/
+│   └── consistent-hash/ # FROM-SCRATCH (R11) — used by matcher
+├── db/
+│   ├── migrations/     # versioned SQL migrations
+│   └── seed/           # seed data for demos and load tests
+├── infra/
+│   ├── nginx/          # API gateway + load balancer
+│   ├── otel/           # OpenTelemetry Collector config
+│   └── grafana/        # provisioned dashboards
+├── docs/
+│   ├── api-endpoints.md
+│   ├── architecture.md
+│   ├── report-draft.md  # source of the PDF report
+│   └── bpmn/            # BPMN diagrams for R10
+├── docker-compose.yml
+├── .env.example
+└── CHANGELOG.md
+```
+
+## Environment variables
+
+See `.env.example` for the full list. Key vars:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `POSTGRES_*` | Postgres connection | see `.env.example` |
+| `REDIS_URL` | Redis connection | `redis://redis:6379` |
+| `KAFKA_BROKERS` | Redpanda bootstrap | `redpanda:9092` |
+| `JWT_SECRET` | API auth | **must override in prod** |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel collector URL | `http://otel-collector:4318` |
+| `MATCHER_REPLICA_IDS` | comma-separated stable matcher IDs for the ring | `matcher-0,matcher-1` |
+| `MATCHER_RING_VNODES` | virtual nodes per replica on the ring | `128` |
+
+## Contributing
+
+Branch off `main`, open a PR, request review from one teammate. CI runs lint + tests on PR. Squash
+on merge. Each team member commits from **their own GitHub account** — the spec grades commit
+history and may zero contributors with no meaningful commits.
+
+## Changelog
+
+See `CHANGELOG.md`.
+
+## Team
+
+See `LINKS.txt`. This file is filled in by the team leader before submission.

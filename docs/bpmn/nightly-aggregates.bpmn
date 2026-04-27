@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_NightlyAggregates"
+                  targetNamespace="http://ridex/bpmn">
+
+  <bpmn:process id="NightlyAggregates" name="Nightly Aggregates — Batch Pipeline" isExecutable="false">
+    <bpmn:startEvent id="Cron_Start" name="03:00 Asia/Tashkent">
+      <bpmn:timerEventDefinition id="TED1"><bpmn:timeCycle>0 3 * * *</bpmn:timeCycle></bpmn:timerEventDefinition>
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="T_DriverDaily" name="REFRESH MATERIALIZED VIEW&#10;CONCURRENTLY mv_driver_daily">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="T_HourlyDemand" name="REFRESH MATERIALIZED VIEW&#10;mv_hourly_demand">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="T_ExportCsv" name="Export yesterday's trips&#10;to /var/exports/trips-YYYY-MM-DD.csv">
+      <bpmn:incoming>F3</bpmn:incoming>
+      <bpmn:outgoing>F4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="T_EmitMetric" name="Increment ridex_batch_runs_total&#10;(Prometheus counter)">
+      <bpmn:incoming>F4</bpmn:incoming>
+      <bpmn:outgoing>F5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_OK" name="success">
+      <bpmn:incoming>F5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:boundaryEvent id="Err_Driver"  attachedToRef="T_DriverDaily"  name="error">
+      <bpmn:errorEventDefinition/>
+      <bpmn:outgoing>F_err1</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Err_Hourly"  attachedToRef="T_HourlyDemand" name="error">
+      <bpmn:errorEventDefinition/>
+      <bpmn:outgoing>F_err2</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+    <bpmn:boundaryEvent id="Err_Csv"     attachedToRef="T_ExportCsv"    name="error">
+      <bpmn:errorEventDefinition/>
+      <bpmn:outgoing>F_err3</bpmn:outgoing>
+    </bpmn:boundaryEvent>
+
+    <bpmn:task id="T_Alert" name="Increment ridex_batch_failures_total&#10;Grafana alert routes to ops">
+      <bpmn:incoming>F_err1</bpmn:incoming>
+      <bpmn:incoming>F_err2</bpmn:incoming>
+      <bpmn:incoming>F_err3</bpmn:incoming>
+      <bpmn:outgoing>F6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_Failed" name="failure">
+      <bpmn:incoming>F6</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F1" sourceRef="Cron_Start"     targetRef="T_DriverDaily"/>
+    <bpmn:sequenceFlow id="F2" sourceRef="T_DriverDaily"  targetRef="T_HourlyDemand"/>
+    <bpmn:sequenceFlow id="F3" sourceRef="T_HourlyDemand" targetRef="T_ExportCsv"/>
+    <bpmn:sequenceFlow id="F4" sourceRef="T_ExportCsv"    targetRef="T_EmitMetric"/>
+    <bpmn:sequenceFlow id="F5" sourceRef="T_EmitMetric"   targetRef="End_OK"/>
+    <bpmn:sequenceFlow id="F_err1" sourceRef="Err_Driver" targetRef="T_Alert"/>
+    <bpmn:sequenceFlow id="F_err2" sourceRef="Err_Hourly" targetRef="T_Alert"/>
+    <bpmn:sequenceFlow id="F_err3" sourceRef="Err_Csv"    targetRef="T_Alert"/>
+    <bpmn:sequenceFlow id="F6" sourceRef="T_Alert"        targetRef="End_Failed"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="D1">
+    <bpmndi:BPMNPlane id="P1" bpmnElement="NightlyAggregates">
+      <bpmndi:BPMNShape id="S1" bpmnElement="Cron_Start">    <dc:Bounds x="50"  y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S2" bpmnElement="T_DriverDaily"> <dc:Bounds x="130" y="138" width="180" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S3" bpmnElement="T_HourlyDemand"><dc:Bounds x="340" y="138" width="180" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S4" bpmnElement="T_ExportCsv">   <dc:Bounds x="550" y="138" width="200" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S5" bpmnElement="T_EmitMetric">  <dc:Bounds x="780" y="138" width="180" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S6" bpmnElement="End_OK">        <dc:Bounds x="990" y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S7" bpmnElement="T_Alert">       <dc:Bounds x="430" y="320" width="220" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S8" bpmnElement="End_Failed">    <dc:Bounds x="700" y="342" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E1" bpmnElement="Err_Driver"><dc:Bounds x="220" y="200" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E2" bpmnElement="Err_Hourly"><dc:Bounds x="430" y="200" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_E3" bpmnElement="Err_Csv">   <dc:Bounds x="640" y="200" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="E1" bpmnElement="F1"><di:waypoint x="86"  y="178"/><di:waypoint x="130" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E2" bpmnElement="F2"><di:waypoint x="310" y="178"/><di:waypoint x="340" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E3" bpmnElement="F3"><di:waypoint x="520" y="178"/><di:waypoint x="550" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E4" bpmnElement="F4"><di:waypoint x="750" y="178"/><di:waypoint x="780" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E5" bpmnElement="F5"><di:waypoint x="960" y="178"/><di:waypoint x="990" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="EE1" bpmnElement="F_err1"><di:waypoint x="238" y="236"/><di:waypoint x="238" y="360"/><di:waypoint x="430" y="360"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="EE2" bpmnElement="F_err2"><di:waypoint x="448" y="236"/><di:waypoint x="448" y="320"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="EE3" bpmnElement="F_err3"><di:waypoint x="658" y="236"/><di:waypoint x="658" y="360"/><di:waypoint x="650" y="360"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="EE4" bpmnElement="F6"><di:waypoint x="650" y="360"/><di:waypoint x="700" y="360"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,22 @@
+{
+  "name": "@ridex/matcher",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@ridex/consistent-hash": "workspace:*",
+    "ioredis":  "^5.4.1",
+    "kafkajs":  "^2.2.4",
+    "pg":       "^8.11.5",
+    "pino":     "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "@types/pg":   "^8.11.6",
+    "typescript":  "^5.4.5"
+  }
+}

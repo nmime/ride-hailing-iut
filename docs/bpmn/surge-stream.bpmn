@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_SurgeStream"
+                  targetNamespace="http://ridex/bpmn">
+
+  <bpmn:process id="SurgeStream" name="Surge Multiplier — Stream Pipeline" isExecutable="false">
+    <bpmn:startEvent id="Start_Msg" name="trip.events.v1 message">
+      <bpmn:messageEventDefinition id="MED_1"/>
+      <bpmn:outgoing>F1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:exclusiveGateway id="GW_Type" name="trip.requested?">
+      <bpmn:incoming>F1</bpmn:incoming>
+      <bpmn:outgoing>F_yes</bpmn:outgoing>
+      <bpmn:outgoing>F_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_LookupZone" name="PostGIS: ST_Covers&#10;to find surge zone for pickup">
+      <bpmn:incoming>F_yes</bpmn:incoming>
+      <bpmn:outgoing>F2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_IncrWindow" name="Increment 1-min sliding window&#10;counter for the zone">
+      <bpmn:incoming>F2</bpmn:incoming>
+      <bpmn:outgoing>F3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_NoOp" name="ignore">
+      <bpmn:incoming>F_no</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="End_Counted" name="counted">
+      <bpmn:incoming>F3</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="F1"   sourceRef="Start_Msg"        targetRef="GW_Type"/>
+    <bpmn:sequenceFlow id="F_yes" name="yes" sourceRef="GW_Type"  targetRef="Task_LookupZone"/>
+    <bpmn:sequenceFlow id="F_no"  name="no"  sourceRef="GW_Type"  targetRef="End_NoOp"/>
+    <bpmn:sequenceFlow id="F2"   sourceRef="Task_LookupZone"  targetRef="Task_IncrWindow"/>
+    <bpmn:sequenceFlow id="F3"   sourceRef="Task_IncrWindow"  targetRef="End_Counted"/>
+  </bpmn:process>
+
+  <bpmn:process id="SurgeStreamTick" name="Surge Tick (every 1 second)" isExecutable="false">
+    <bpmn:startEvent id="Tick_Start" name="every 1s">
+      <bpmn:timerEventDefinition id="TED_1"><bpmn:timeCycle>R/PT1S</bpmn:timeCycle></bpmn:timerEventDefinition>
+      <bpmn:outgoing>T1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_ComputeRatio" name="For each zone:&#10;ratio = requests / online_drivers">
+      <bpmn:incoming>T1</bpmn:incoming>
+      <bpmn:outgoing>T2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="GW_Threshold" name="ratio &gt; T_HIGH?">
+      <bpmn:incoming>T2</bpmn:incoming>
+      <bpmn:outgoing>T_high</bpmn:outgoing>
+      <bpmn:outgoing>T_else</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_RaiseM" name="multiplier *= 1.10 (capped at MAX)">
+      <bpmn:incoming>T_high</bpmn:incoming>
+      <bpmn:outgoing>T3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_DecayM" name="multiplier *= 0.97 (floor 1.00)">
+      <bpmn:incoming>T_else</bpmn:incoming>
+      <bpmn:outgoing>T4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_WriteRedis" name="HSET surge:zone:&lt;id&gt;&#10;{ multiplier, updated_at }">
+      <bpmn:incoming>T3</bpmn:incoming>
+      <bpmn:incoming>T4</bpmn:incoming>
+      <bpmn:outgoing>T5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="Tick_End" name="done">
+      <bpmn:incoming>T5</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="T1"     sourceRef="Tick_Start"      targetRef="Task_ComputeRatio"/>
+    <bpmn:sequenceFlow id="T2"     sourceRef="Task_ComputeRatio" targetRef="GW_Threshold"/>
+    <bpmn:sequenceFlow id="T_high" name="high" sourceRef="GW_Threshold" targetRef="Task_RaiseM"/>
+    <bpmn:sequenceFlow id="T_else" name="else" sourceRef="GW_Threshold" targetRef="Task_DecayM"/>
+    <bpmn:sequenceFlow id="T3"     sourceRef="Task_RaiseM"     targetRef="Task_WriteRedis"/>
+    <bpmn:sequenceFlow id="T4"     sourceRef="Task_DecayM"     targetRef="Task_WriteRedis"/>
+    <bpmn:sequenceFlow id="T5"     sourceRef="Task_WriteRedis" targetRef="Tick_End"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="D1">
+    <bpmndi:BPMNPlane id="P1" bpmnElement="SurgeStream">
+      <bpmndi:BPMNShape id="S1" bpmnElement="Start_Msg">      <dc:Bounds x="50"  y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S2" isMarkerVisible="true" bpmnElement="GW_Type"><dc:Bounds x="130" y="153" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S3" bpmnElement="Task_LookupZone"><dc:Bounds x="220" y="138" width="160" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S4" bpmnElement="Task_IncrWindow"><dc:Bounds x="410" y="138" width="180" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S5" bpmnElement="End_NoOp">       <dc:Bounds x="137" y="280" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S6" bpmnElement="End_Counted">    <dc:Bounds x="620" y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="E1" bpmnElement="F1"  ><di:waypoint x="86"  y="178"/><di:waypoint x="130" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E2" bpmnElement="F_yes"><di:waypoint x="180" y="178"/><di:waypoint x="220" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E3" bpmnElement="F_no" ><di:waypoint x="155" y="203"/><di:waypoint x="155" y="280"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E4" bpmnElement="F2"   ><di:waypoint x="380" y="178"/><di:waypoint x="410" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E5" bpmnElement="F3"   ><di:waypoint x="590" y="178"/><di:waypoint x="620" y="178"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="D2">
+    <bpmndi:BPMNPlane id="P2" bpmnElement="SurgeStreamTick">
+      <bpmndi:BPMNShape id="T_S1" bpmnElement="Tick_Start">     <dc:Bounds x="50"  y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_S2" bpmnElement="Task_ComputeRatio"><dc:Bounds x="130" y="138" width="180" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_S3" isMarkerVisible="true" bpmnElement="GW_Threshold"><dc:Bounds x="340" y="153" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_S4" bpmnElement="Task_RaiseM">    <dc:Bounds x="430" y="80"  width="200" height="60"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_S5" bpmnElement="Task_DecayM">    <dc:Bounds x="430" y="220" width="200" height="60"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_S6" bpmnElement="Task_WriteRedis"><dc:Bounds x="670" y="138" width="180" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="T_S7" bpmnElement="Tick_End">       <dc:Bounds x="880" y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="T_E1" bpmnElement="T1"   ><di:waypoint x="86"  y="178"/><di:waypoint x="130" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="T_E2" bpmnElement="T2"   ><di:waypoint x="310" y="178"/><di:waypoint x="340" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="T_E3" bpmnElement="T_high"><di:waypoint x="365" y="153"/><di:waypoint x="365" y="110"/><di:waypoint x="430" y="110"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="T_E4" bpmnElement="T_else"><di:waypoint x="365" y="203"/><di:waypoint x="365" y="250"/><di:waypoint x="430" y="250"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="T_E5" bpmnElement="T3"   ><di:waypoint x="630" y="110"/><di:waypoint x="760" y="110"/><di:waypoint x="760" y="138"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="T_E6" bpmnElement="T4"   ><di:waypoint x="630" y="250"/><di:waypoint x="760" y="250"/><di:waypoint x="760" y="218"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="T_E7" bpmnElement="T5"   ><di:waypoint x="850" y="178"/><di:waypoint x="880" y="178"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

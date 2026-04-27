@@ -1,0 +1,17 @@
+{
+  "name": "@ridex/consistent-hash",
+  "version": "0.1.0",
+  "private": true,
+  "description": "From-scratch consistent-hashing ring used by the matcher service to shard drivers across worker replicas.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

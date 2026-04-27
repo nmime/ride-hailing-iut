@@ -1,0 +1,14 @@
+/* Minimal styling. The team can replace with Tailwind once it's wired. */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.layout { display: flex; min-height: 100vh; }
+.sidebar { width: 220px; background: #0f172a; color: #e2e8f0; padding: 16px; }
+.sidebar a { display: block; color: #cbd5e1; text-decoration: none; padding: 8px 4px; border-radius: 4px; }
+.sidebar a:hover, .sidebar a.active { background: #1e293b; color: white; }
+.main { flex: 1; padding: 16px; }
+.map { height: 70vh; border-radius: 8px; overflow: hidden; }
+.btn { padding: 8px 14px; background: #2563eb; color: white; border: 0; border-radius: 6px; cursor: pointer; }
+.btn:disabled { opacity: 0.5; }
+.card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.row { display: flex; gap: 8px; align-items: center; }
