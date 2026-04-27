@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  id="Definitions_TripLifecycle"
+                  targetNamespace="http://ridex/bpmn"
+                  exporter="bpmn.io" exporterVersion="11.0">
+
+  <bpmn:process id="TripLifecycle" name="Trip Lifecycle" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_RiderRequests" name="Rider taps Request">
+      <bpmn:outgoing>SF_1</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:task id="Task_ApiPersist" name="API: persist trip (status=requested)&#10;+ emit trip.requested">
+      <bpmn:incoming>SF_1</bpmn:incoming>
+      <bpmn:outgoing>SF_2</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_MatcherFindDriver" name="Matcher: GEOSEARCH nearest&#10;online drivers (Redis)">
+      <bpmn:incoming>SF_2</bpmn:incoming>
+      <bpmn:outgoing>SF_3</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="GW_DriverFound" name="driver in radius?">
+      <bpmn:incoming>SF_3</bpmn:incoming>
+      <bpmn:outgoing>SF_yes</bpmn:outgoing>
+      <bpmn:outgoing>SF_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_PersistMatched" name="UPDATE trips SET status=matched&#10;+ emit trip.matched">
+      <bpmn:incoming>SF_yes</bpmn:incoming>
+      <bpmn:outgoing>SF_4</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_DriverDecide" name="Driver: accept or decline (UI)">
+      <bpmn:incoming>SF_4</bpmn:incoming>
+      <bpmn:outgoing>SF_5</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:exclusiveGateway id="GW_Accept" name="accepted?">
+      <bpmn:incoming>SF_5</bpmn:incoming>
+      <bpmn:outgoing>SF_acc</bpmn:outgoing>
+      <bpmn:outgoing>SF_dec</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:task id="Task_Drive" name="Drive: in_progress&#10;(WS pushes location to rider)">
+      <bpmn:incoming>SF_acc</bpmn:incoming>
+      <bpmn:outgoing>SF_6</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:task id="Task_Complete" name="Compute fare&#10;UPDATE status=completed&#10;INSERT fare_records">
+      <bpmn:incoming>SF_6</bpmn:incoming>
+      <bpmn:outgoing>SF_7</bpmn:outgoing>
+    </bpmn:task>
+
+    <bpmn:endEvent id="End_Completed" name="Completed">
+      <bpmn:incoming>SF_7</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_NoDriver" name="Expired (no driver)">
+      <bpmn:incoming>SF_no</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="End_DriverDeclined" name="Cancelled by driver">
+      <bpmn:incoming>SF_dec</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="SF_1"   sourceRef="StartEvent_RiderRequests" targetRef="Task_ApiPersist"/>
+    <bpmn:sequenceFlow id="SF_2"   sourceRef="Task_ApiPersist"          targetRef="Task_MatcherFindDriver"/>
+    <bpmn:sequenceFlow id="SF_3"   sourceRef="Task_MatcherFindDriver"   targetRef="GW_DriverFound"/>
+    <bpmn:sequenceFlow id="SF_yes" name="yes" sourceRef="GW_DriverFound" targetRef="Task_PersistMatched"/>
+    <bpmn:sequenceFlow id="SF_no"  name="no"  sourceRef="GW_DriverFound" targetRef="End_NoDriver"/>
+    <bpmn:sequenceFlow id="SF_4"   sourceRef="Task_PersistMatched"      targetRef="Task_DriverDecide"/>
+    <bpmn:sequenceFlow id="SF_5"   sourceRef="Task_DriverDecide"        targetRef="GW_Accept"/>
+    <bpmn:sequenceFlow id="SF_acc" name="accept"  sourceRef="GW_Accept" targetRef="Task_Drive"/>
+    <bpmn:sequenceFlow id="SF_dec" name="decline" sourceRef="GW_Accept" targetRef="End_DriverDeclined"/>
+    <bpmn:sequenceFlow id="SF_6"   sourceRef="Task_Drive"               targetRef="Task_Complete"/>
+    <bpmn:sequenceFlow id="SF_7"   sourceRef="Task_Complete"            targetRef="End_Completed"/>
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="TripLifecycle">
+      <bpmndi:BPMNShape id="S_Start"            bpmnElement="StartEvent_RiderRequests"><dc:Bounds x="50"   y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_ApiPersist"       bpmnElement="Task_ApiPersist">          <dc:Bounds x="130"  y="138" width="120" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_MatcherFind"      bpmnElement="Task_MatcherFindDriver">   <dc:Bounds x="280"  y="138" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GW_Found" isMarkerVisible="true" bpmnElement="GW_DriverFound"><dc:Bounds x="450" y="153" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_PersistMatched"   bpmnElement="Task_PersistMatched">      <dc:Bounds x="540"  y="138" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_DriverDecide"     bpmnElement="Task_DriverDecide">        <dc:Bounds x="710"  y="138" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_GW_Accept" isMarkerVisible="true" bpmnElement="GW_Accept"><dc:Bounds x="880"  y="153" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Drive"            bpmnElement="Task_Drive">               <dc:Bounds x="970"  y="138" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_Complete"         bpmnElement="Task_Complete">            <dc:Bounds x="1140" y="138" width="140" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_Completed"    bpmnElement="End_Completed">            <dc:Bounds x="1310" y="160" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_NoDriver"     bpmnElement="End_NoDriver">             <dc:Bounds x="457"  y="280" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S_End_Declined"     bpmnElement="End_DriverDeclined">       <dc:Bounds x="887"  y="280" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="E_1" bpmnElement="SF_1"  ><di:waypoint x="86"  y="178"/><di:waypoint x="130" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_2" bpmnElement="SF_2"  ><di:waypoint x="250" y="178"/><di:waypoint x="280" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_3" bpmnElement="SF_3"  ><di:waypoint x="420" y="178"/><di:waypoint x="450" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_yes" bpmnElement="SF_yes"><di:waypoint x="500" y="178"/><di:waypoint x="540" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_no"  bpmnElement="SF_no" ><di:waypoint x="475" y="203"/><di:waypoint x="475" y="280"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_4" bpmnElement="SF_4"  ><di:waypoint x="680" y="178"/><di:waypoint x="710" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_5" bpmnElement="SF_5"  ><di:waypoint x="850" y="178"/><di:waypoint x="880" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_acc" bpmnElement="SF_acc"><di:waypoint x="930" y="178"/><di:waypoint x="970" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_dec" bpmnElement="SF_dec"><di:waypoint x="905" y="203"/><di:waypoint x="905" y="280"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_6" bpmnElement="SF_6"  ><di:waypoint x="1110" y="178"/><di:waypoint x="1140" y="178"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E_7" bpmnElement="SF_7"  ><di:waypoint x="1280" y="178"/><di:waypoint x="1310" y="178"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

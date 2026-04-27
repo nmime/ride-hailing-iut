@@ -1,0 +1,15 @@
+RideX — Ride-Hailing Mini-Platform
+Database Application & Design, Spring 2026
+
+Deployed URL : https://___FILL_ME_IN___
+GitHub URL   : https://github.com/___FILL_ME_IN___
+Submission   : 2026-05-17
+
+Team
+----
+Leader  : Name | Student ID | role
+Member  : Name | Student ID | role
+Member  : Name | Student ID | role
+Member  : Name | Student ID | role
+Member  : Name | Student ID | role
+Member  : Name | Student ID | role

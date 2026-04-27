@@ -1,0 +1,93 @@
+{
+  "uid": "ridex-overview",
+  "title": "RideX — Overview (R12)",
+  "tags": ["ridex"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-15m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "POST /api/trips — duration p95 (Prometheus)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{http_route=\"/trips\",http_request_method=\"POST\"}[5m])) by (le))"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Trip events / s by type (Prometheus)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (event_type) (rate(ridex_trip_events_total[1m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "API errors (Loki)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"ridex-api\"} | json | level=\"error\""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "traces",
+      "title": "Recent traces (Tempo)",
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "x": 0, "y": 16, "w": 24, "h": 9 },
+      "targets": [
+        {
+          "refId": "A",
+          "queryType": "traceqlSearch",
+          "filters": [
+            { "id": "service-name", "tag": "service.name", "operator": "=", "scope": "resource", "value": ["ridex-api"] }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Batch runs (cron)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 0, "y": 25, "w": 6, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "ridex_batch_runs_total" }]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Batch failures (cron)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 6, "y": 25, "w": 6, "h": 4 },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":0},{"color":"red","value":1}] }}},
+      "targets": [{ "refId": "A", "expr": "ridex_batch_failures_total" }]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Online drivers (Redis ZCARD via API)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "x": 12, "y": 25, "w": 12, "h": 4 },
+      "targets": [{ "refId": "A", "expr": "ridex_drivers_online" }]
+    }
+  ]
+}
