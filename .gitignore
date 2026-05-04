@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+.pnpm-store/
+__pycache__/
+.venv/
+
+# build artefacts
+dist/
+build/
+target/
+.next/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# logs
+*.log
+
+# env
+.env
+.env.local
+
+# editor
+.vscode/
+.idea/
+.DS_Store
+
+# AI assistant tooling
+.claude/
+.codex/
+.factory/
+
+# docker
+*.pid
