@@ -1,0 +1,305 @@
+# RideX — full stack. `docker compose up -d --build` to bring everything up.
+# A single public port (80/443) is exposed by the gateway; everything else is
+# on the internal `ridex` network.
+
+name: ridex
+
+x-api-build: &api-build
+  build:
+    context: .
+    dockerfile: apps/api/Dockerfile
+  env_file: .env
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis:    { condition: service_healthy }
+    redpanda: { condition: service_healthy }
+  networks: [ridex]
+  healthcheck:
+    test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/readyz"]
+    interval: 10s
+    timeout: 3s
+    retries: 5
+
+services:
+  # ---------------------------------------------------------------------------
+  # Data plane
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: ridex-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [ridex]
+
+  redis:
+    image: redis:7-alpine
+    container_name: ridex-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [ridex]
+
+  redpanda:
+    image: redpandadata/redpanda:v24.1.7
+    container_name: ridex-redpanda
+    command:
+      - redpanda
+      - start
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://redpanda:9092
+      - --pandaproxy-addr=0.0.0.0:8082
+      - --advertise-pandaproxy-addr=redpanda:8082
+      - --schema-registry-addr=0.0.0.0:8081
+      - --rpc-addr=0.0.0.0:33145
+      - --advertise-rpc-addr=redpanda:33145
+      - --smp=1
+      - --memory=512M
+      - --reserve-memory=0M
+      - --overprovisioned
+      - --node-id=0
+      - --check=false
+    volumes:
+      - rpdata:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [ridex]
+
+  redpanda-console:
+    image: redpandadata/console:v2.5.2
+    container_name: ridex-redpanda-console
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    depends_on:
+      redpanda: { condition: service_healthy }
+    networks: [ridex]
+
+  # ---------------------------------------------------------------------------
+  # Application services
+  # ---------------------------------------------------------------------------
+  api:
+    <<: *api-build
+    deploy:
+      replicas: 2
+    expose: ["3000"]
+    environment:
+      MIGRATIONS_DIR: /app/db/migrations
+      SEED_PATH:      /app/db/seed/seed.sql
+    volumes:
+      # Bind-mount migrations + seed so SQL changes don't require rebuild
+      - ./db:/app/db:ro
+
+  ws-gateway:
+    build:
+      context: .
+      dockerfile: services/ws-gateway/Dockerfile
+    env_file: .env
+    depends_on:
+      redis:    { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    expose: ["3100"]
+    networks: [ridex]
+
+  # Two named matcher services (rather than `deploy.replicas`) so each gets
+  # a stable HOSTNAME — the consistent-hash ring uses HOSTNAME to identify
+  # "self" against MATCHER_REPLICA_IDS. Add/remove a service to demonstrate
+  # the ring's ~1/N rebalance property in viva.
+  matcher-0:
+    build:
+      context: .
+      dockerfile: services/matcher/Dockerfile
+    env_file: .env
+    hostname: matcher-0
+    depends_on:
+      redis:    { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    networks: [ridex]
+
+  matcher-1:
+    build:
+      context: .
+      dockerfile: services/matcher/Dockerfile
+    env_file: .env
+    hostname: matcher-1
+    depends_on:
+      redis:    { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    networks: [ridex]
+
+  ingestor:
+    build:
+      context: .
+      dockerfile: services/ingestor/Dockerfile
+    env_file: .env
+    depends_on:
+      redis:    { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    expose: ["3200"]
+    networks: [ridex]
+
+  surge-worker:
+    build:
+      context: .
+      dockerfile: services/surge-worker/Dockerfile
+    env_file: .env
+    depends_on:
+      redis:    { condition: service_healthy }
+      redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    networks: [ridex]
+
+  cron:
+    build:
+      context: .
+      dockerfile: services/cron/Dockerfile
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes:
+      - exports:/var/exports
+    expose: ["9300"]
+    networks: [ridex]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_MAP_PROVIDER: ${VITE_MAP_PROVIDER:-auto}
+        VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
+        VITE_YANDEX_MAPS_LANG: ${VITE_YANDEX_MAPS_LANG:-en_US}
+    env_file: .env
+    expose: ["80"]
+    networks: [ridex]
+
+  # ---------------------------------------------------------------------------
+  # Edge: gateway / load balancer (R8). Single public port -> everything.
+  # ---------------------------------------------------------------------------
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: ridex-gateway
+    depends_on:
+      api:        { condition: service_started }
+      web:        { condition: service_started }
+      ws-gateway: { condition: service_started }
+      ingestor:   { condition: service_started }
+      grafana:    { condition: service_started }
+    ports:
+      - "80:80"
+      # - "443:443"  # uncomment in production with mounted certs
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+    networks: [ridex]
+
+  # ---------------------------------------------------------------------------
+  # Observability (R12)
+  # ---------------------------------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.99.0
+    container_name: ridex-otel
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    expose: ["4317", "4318"]
+    networks: [ridex]
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: ridex-prometheus
+    volumes:
+      - ./infra/otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    expose: ["9090"]
+    networks: [ridex]
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: ridex-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    depends_on:
+      postgres: { condition: service_healthy }
+    expose: ["9187"]
+    networks: [ridex]
+
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: ridex-loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - lokidata:/loki
+    expose: ["3100"]
+    networks: [ridex]
+
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: ridex-promtail
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    volumes:
+      - ./infra/otel/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      loki: { condition: service_started }
+    networks: [ridex]
+
+  tempo:
+    image: grafana/tempo:2.4.1
+    container_name: ridex-tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./infra/otel/tempo.yaml:/etc/tempo.yaml:ro
+      - tempodata:/var/tempo
+    expose: ["3200", "4317"]
+    networks: [ridex]
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: ridex-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
+      - grafanadata:/var/lib/grafana
+    expose: ["3000"]
+    networks: [ridex]
+
+networks:
+  ridex:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  rpdata:
+  promdata:
+  lokidata:
+  tempodata:
+  grafanadata:
+  exports:
