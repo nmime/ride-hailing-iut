@@ -1,0 +1,18 @@
+FROM node:20-alpine AS deps
+WORKDIR /app
+RUN corepack enable && corepack prepare pnpm@9 --activate
+COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
+COPY services/cron/package.json services/cron/
+RUN pnpm install --frozen-lockfile=false
+
+FROM deps AS build
+COPY services/cron services/cron
+RUN pnpm --filter @ridex/cron build
+
+FROM node:20-alpine AS runtime
+WORKDIR /app/services/cron
+COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/services/cron/node_modules node_modules
+COPY --from=build /app/services/cron/dist         dist
+COPY --from=build /app/services/cron/package.json package.json
+CMD ["node", "dist/index.js"]
