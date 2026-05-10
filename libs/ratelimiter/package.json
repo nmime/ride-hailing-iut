@@ -1,0 +1,25 @@
+{
+  "name": "@ridex/ratelimiter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "From-scratch token-bucket rate limiter (in-memory + Redis-backed) used by the API gateway middleware.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.7",
+    "ioredis":     "^5.4.1",
+    "typescript":  "^5.4.0",
+    "vitest":      "^1.6.0"
+  },
+  "peerDependencies": {
+    "ioredis": "^5.4.1"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": { "optional": true }
+  }
+}

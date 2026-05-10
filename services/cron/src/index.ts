@@ -17,10 +17,22 @@ import { writeFileSync } from 'fs';
 import { mkdirSync } from 'fs';
 import { join } from 'path';
 
-const log = pino({ level: process.env.LOG_LEVEL ?? 'info', name: 'cron' });
-const pg  = new Pool({ connectionString: process.env.DATABASE_URL });
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set`);
+  return value;
+}
 
-const EXPORTS_DIR = process.env.EXPORTS_DIR ?? '/var/exports';
+function requiredNumberEnv(name: string) {
+  const value = Number(requiredEnv(name));
+  if (!Number.isFinite(value)) throw new Error(`${name} must be numeric`);
+  return value;
+}
+
+const log = pino({ level: requiredEnv('LOG_LEVEL'), name: 'cron' });
+const pg  = new Pool({ connectionString: requiredEnv('DATABASE_URL') });
+
+const EXPORTS_DIR = requiredEnv('EXPORTS_DIR');
 mkdirSync(EXPORTS_DIR, { recursive: true });
 
 let runs = 0, failures = 0;
@@ -65,14 +77,14 @@ async function safe(name: string, fn: () => Promise<void>) {
 }
 
 // 03:00 daily — full nightly aggregates
-schedule(process.env.CRON_NIGHTLY ?? '0 3 * * *', () => {
+schedule(requiredEnv('CRON_NIGHTLY'), () => {
   safe('refresh_driver_daily',   refreshDriverDaily);
   safe('refresh_hourly_demand',  refreshHourlyDemand);
   safe('export_yesterday_csv',   exportYesterdayCsv);
 }, { timezone: 'Asia/Tashkent' });
 
 // :05 every hour — keep mv_hourly_demand fresh for surge / capacity views
-schedule(process.env.CRON_HOURLY ?? '5 * * * *', () => {
+schedule(requiredEnv('CRON_HOURLY'), () => {
   safe('refresh_hourly_demand_hourly', refreshHourlyDemand);
 });
 
@@ -90,4 +102,4 @@ createServer((_, res) => {
     `# TYPE ridex_batch_failures_total counter\n` +
     `ridex_batch_failures_total ${failures}\n`,
   );
-}).listen(Number(process.env.CRON_METRICS_PORT ?? 9300));
+}).listen(requiredNumberEnv('CRON_METRICS_PORT'));

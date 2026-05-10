@@ -3,9 +3,8 @@
 Group project for **Database Application & Design** (Spring 2026, Inha University in Tashkent).
 Team leader submission only — see `LINKS.txt` for the deployed URL, GitHub URL, and team roster.
 
-> **Status:** scaffold. Each section below is a starting point that the team is expected to extend
-> and *be able to defend in viva*. The spec forbids AI-generated backend code that the team cannot
-> explain line by line.
+> **Status:** working project baseline. The backend code is intentionally compact so the team can
+> explain the data model, event flow, and service responsibilities line by line in viva.
 
 ---
 
@@ -42,6 +41,27 @@ open http://localhost            # gateway → web app
 open http://localhost/api/docs   # Swagger UI
 open http://localhost:3001       # Grafana (admin / admin)
 ```
+
+To render the in-app maps with Yandex Maps instead of the OpenStreetMap fallback, set these before
+building the web image:
+
+```bash
+VITE_MAP_PROVIDER=yandex
+VITE_YANDEX_MAPS_API_KEY=your_browser_key
+VITE_YANDEX_MAPS_LANG=en_US
+docker compose up -d --build web gateway
+```
+
+Yandex route links are available in the rider and driver screens even when the embedded provider
+falls back to OpenStreetMap.
+
+Seeded app users all use `RIDEX_SEED_PASSWORD` (default `ChangeMe123!`):
+
+| Role | Phone |
+|---|---|
+| Admin | `+998900000000` |
+| Rider | `+998901111111` |
+| Driver | `+998903333333` |
 
 > **Note on api scaling.** The compose file uses `deploy.replicas: 2` for
 > `api`. If your Docker Compose version ignores `deploy.replicas` outside
@@ -100,6 +120,10 @@ See `.env.example` for the full list. Key vars:
 | `REDIS_URL` | Redis connection | `redis://redis:6379` |
 | `KAFKA_BROKERS` | Redpanda bootstrap | `redpanda:9092` |
 | `JWT_SECRET` | API auth | **must override in prod** |
+| `RIDEX_SEED_PASSWORD` | Password hashed into seed users | `ChangeMe123!` |
+| `VITE_MAP_PROVIDER` | Web map provider: `auto`, `yandex`, or fallback tiles | `auto` |
+| `VITE_YANDEX_MAPS_API_KEY` | Browser key for Yandex Maps JS API 3.0 | empty |
+| `VITE_YANDEX_MAPS_LANG` | Yandex Maps locale | `en_US` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | OTel collector URL | `http://otel-collector:4318` |
 | `MATCHER_REPLICA_IDS` | comma-separated stable matcher IDs for the ring | `matcher-0,matcher-1` |
 | `MATCHER_RING_VNODES` | virtual nodes per replica on the ring | `128` |

@@ -148,8 +148,8 @@ CREATE TABLE fare_records (
 );
 
 -- ---------------------------------------------------------------------------
--- payment_methods: minimal placeholder for fare settlement. Real PSP
--- integration is out of scope; we only store a tokenised reference.
+-- payment_methods: tokenised references for fare settlement. External PSP
+-- integration is outside this course project, so no card PAN is stored.
 -- ---------------------------------------------------------------------------
 CREATE TABLE payment_methods (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),

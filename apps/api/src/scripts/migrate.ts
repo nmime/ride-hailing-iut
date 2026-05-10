@@ -13,11 +13,17 @@ import { readdirSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { Client } from 'pg';
 
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set`);
+  return value;
+}
+
 async function main() {
-  const dir = resolve(process.env.MIGRATIONS_DIR ?? './db/migrations');
+  const dir = resolve(requiredEnv('MIGRATIONS_DIR'));
   const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
 
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const client = new Client({ connectionString: requiredEnv('DATABASE_URL') });
   await client.connect();
 
   await client.query(`

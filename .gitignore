@@ -11,6 +11,7 @@ target/
 .next/
 .cache/
 coverage/
+*.tsbuildinfo
 
 # logs
 *.log
@@ -23,6 +24,11 @@ coverage/
 .vscode/
 .idea/
 .DS_Store
+
+# AI assistant tooling
+.claude/
+.codex/
+.factory/
 
 # docker
 *.pid

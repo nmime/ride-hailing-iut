@@ -12,6 +12,7 @@ RUN pnpm --filter @ridex/ingestor build
 FROM node:20-alpine AS runtime
 WORKDIR /app/services/ingestor
 COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/services/ingestor/node_modules node_modules
 COPY --from=build /app/services/ingestor/dist         dist
 COPY --from=build /app/services/ingestor/package.json package.json
 EXPOSE 3200

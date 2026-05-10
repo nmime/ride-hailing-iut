@@ -14,38 +14,140 @@
  * grow it — anything stateful belongs in the matcher.
  */
 import Fastify from 'fastify';
+import { createHmac, timingSafeEqual } from 'crypto';
 import Redis from 'ioredis';
 import { Kafka } from 'kafkajs';
+import { Pool } from 'pg';
 import pino from 'pino';
 
-const log = pino({ level: process.env.LOG_LEVEL ?? 'info', name: 'ingestor' });
+function requiredEnv(name: string, options: { minLength?: number; secret?: boolean } = {}) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set`);
+  if (options.minLength && value.length < options.minLength) {
+    throw new Error(`${name} must be at least ${options.minLength} characters long`);
+  }
+  if (options.secret && ['change_me_to_a_long_random_string', 'ChangeMe123!'].includes(value)) {
+    throw new Error(`${name} must not use a known placeholder value`);
+  }
+  return value;
+}
+
+function requiredNumberEnv(name: string) {
+  const value = Number(requiredEnv(name));
+  if (!Number.isFinite(value)) throw new Error(`${name} must be numeric`);
+  return value;
+}
+
+const log = pino({ level: requiredEnv('LOG_LEVEL'), name: 'ingestor' });
 
 const app = Fastify({ logger: false });
-const redis = new Redis(process.env.REDIS_URL ?? 'redis://redis:6379');
+const redis = new Redis(requiredEnv('REDIS_URL'));
+const pg = new Pool({ connectionString: requiredEnv('DATABASE_URL') });
 const kafka = new Kafka({
   clientId: 'ingestor',
-  brokers: (process.env.KAFKA_BROKERS ?? 'redpanda:9092').split(','),
+  brokers: requiredEnv('KAFKA_BROKERS').split(','),
 });
 const producer = kafka.producer({ allowAutoTopicCreation: true });
 
-const TOPIC = process.env.TOPIC_DRIVER_LOCATION ?? 'driver.location.v1';
+const TOPIC = requiredEnv('TOPIC_DRIVER_LOCATION');
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const JWT_SECRET = requiredEnv('JWT_SECRET', { minLength: 32, secret: true });
+
+interface JwtPayload {
+  sub: string;
+  role: 'rider' | 'driver' | 'admin';
+  exp?: number;
+}
+
+interface LocationBody {
+  driver_id: string;
+  lat: number;
+  lon: number;
+  heading_deg?: number;
+  speed_mps?: number;
+  ts?: number;
+}
 
 app.get('/healthz', async () => ({ status: 'ok' }));
 
 app.post('/v1/locations', async (req, reply) => {
-  const body = req.body as {
-    driver_id: string;
-    lat: number; lon: number;
-    heading_deg?: number; speed_mps?: number;
-    ts?: number;
-  };
+  const auth = req.headers.authorization;
+  const token = auth?.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return reply.code(401).send({ error: 'missing bearer token' });
 
-  if (!body || typeof body.lat !== 'number' || typeof body.lon !== 'number'
-      || typeof body.driver_id !== 'string') {
-    return reply.code(400).send({ error: 'invalid payload' });
+  let user: JwtPayload;
+  try {
+    user = verifyJwt(token);
+  } catch {
+    return reply.code(401).send({ error: 'invalid token' });
+  }
+  if (user.role !== 'driver') {
+    return reply.code(403).send({ error: 'driver role required' });
   }
 
-  const now = body.ts ?? Date.now();
+  const body = req.body as Partial<LocationBody>;
+
+  if (!body || typeof body.driver_id !== 'string' || !UUID_RE.test(body.driver_id)
+      || typeof body.lat !== 'number' || body.lat < -90 || body.lat > 90
+      || typeof body.lon !== 'number' || body.lon < -180 || body.lon > 180
+      || (body.heading_deg !== undefined && (typeof body.heading_deg !== 'number' || body.heading_deg < 0 || body.heading_deg > 360))
+      || (body.speed_mps !== undefined && (typeof body.speed_mps !== 'number' || body.speed_mps < 0))) {
+    return reply.code(400).send({ error: 'invalid payload' });
+  }
+  if (user.sub !== body.driver_id) {
+    return reply.code(403).send({ error: 'drivers can only publish their own location' });
+  }
+
+  const ts = body.ts ?? Date.now();
+  if (!Number.isFinite(ts)) return reply.code(400).send({ error: 'invalid timestamp' });
+  const observedAt = new Date(ts);
+
+  const client = await pg.connect();
+  try {
+    await client.query('BEGIN');
+    const driver = await client.query(
+      `UPDATE drivers
+          SET status = 'online'
+        WHERE user_id = $1
+          AND status <> 'suspended'
+        RETURNING user_id`,
+      [body.driver_id],
+    );
+    if (driver.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return reply.code(404).send({ error: 'driver not found' });
+    }
+
+    await client.query(
+      `INSERT INTO driver_locations (driver_id, location, heading_deg, speed_mps, updated_at)
+       VALUES (
+         $1,
+         ST_SetSRID(ST_MakePoint($2,$3),4326)::geography,
+         $4,
+         $5,
+         $6
+       )
+       ON CONFLICT (driver_id) DO UPDATE
+          SET location = EXCLUDED.location,
+              heading_deg = EXCLUDED.heading_deg,
+              speed_mps = EXCLUDED.speed_mps,
+              updated_at = EXCLUDED.updated_at`,
+      [
+        body.driver_id,
+        body.lon,
+        body.lat,
+        body.heading_deg ?? null,
+        body.speed_mps ?? null,
+        observedAt,
+      ],
+    );
+    await client.query('COMMIT');
+  } catch (e) {
+    await client.query('ROLLBACK');
+    throw e;
+  } finally {
+    client.release();
+  }
 
   // Update the Redis GEO index. `geoadd` returns 0 when the key already
   // exists for this member (the position is updated in place).
@@ -57,23 +159,42 @@ app.post('/v1/locations', async (req, reply) => {
     topic: TOPIC,
     messages: [{
       key: body.driver_id,
-      value: JSON.stringify({ ...body, ts: now }),
+      value: JSON.stringify({ ...body, ts }),
     }],
   });
 
-  return reply.code(202).send({ ok: true, ts: now });
+  return reply.code(202).send({ ok: true, ts });
 });
+
+function verifyJwt(token: string): JwtPayload {
+  const [rawHeader, rawPayload, rawSignature] = token.split('.');
+  if (!rawHeader || !rawPayload || !rawSignature) throw new Error('malformed jwt');
+  const header = JSON.parse(Buffer.from(rawHeader, 'base64url').toString('utf8')) as { alg?: string };
+  if (header.alg !== 'HS256') throw new Error('unsupported jwt algorithm');
+
+  const expected = createHmac('sha256', JWT_SECRET!)
+    .update(`${rawHeader}.${rawPayload}`)
+    .digest('base64url');
+  const a = Buffer.from(rawSignature);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !timingSafeEqual(a, b)) throw new Error('bad signature');
+
+  const payload = JSON.parse(Buffer.from(rawPayload, 'base64url').toString('utf8')) as JwtPayload;
+  if (!payload.sub || !payload.role) throw new Error('missing claims');
+  if (payload.exp && payload.exp * 1000 <= Date.now()) throw new Error('jwt expired');
+  return payload;
+}
 
 async function start() {
   await producer.connect();
-  const port = Number(process.env.INGESTOR_PORT ?? 3200);
-  await app.listen({ port, host: '0.0.0.0' });
+  const port = requiredNumberEnv('INGESTOR_PORT');
+  await app.listen({ port, host: requiredEnv('INGESTOR_HOST') });
   log.info({ port }, 'ingestor listening');
 }
 
 start().catch((e) => { log.error(e); process.exit(1); });
 
 ['SIGINT','SIGTERM'].forEach((s) => process.on(s, async () => {
-  await Promise.allSettled([producer.disconnect(), redis.quit(), app.close()]);
+  await Promise.allSettled([producer.disconnect(), redis.quit(), pg.end(), app.close()]);
   process.exit(0);
 }));

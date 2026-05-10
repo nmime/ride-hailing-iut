@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import Redis from 'ioredis';
 
+import { requiredEnv } from '../common/env';
+
 export const REDIS = Symbol.for('REDIS');
 
 @Global()
@@ -8,7 +10,7 @@ export const REDIS = Symbol.for('REDIS');
   providers: [
     {
       provide: REDIS,
-      useFactory: () => new Redis(process.env.REDIS_URL ?? 'redis://redis:6379'),
+      useFactory: () => new Redis(requiredEnv('REDIS_URL')),
     },
   ],
   exports: [REDIS],

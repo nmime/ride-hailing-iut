@@ -76,7 +76,7 @@ Implementation notes worth defending in viva:
 - **No bounded-load variant.** Real Uber-style systems use the
   Mirrokni–Thorup–Zadimoghaddam *consistent hashing with bounded load*
   (Google, 2016) to cap any one node at e.g. 1.25× the average. We don't
-  need that for the demo workload, but it's the obvious extension.
+  need that for the current course workload, but it is the obvious extension.
 - **No replication factor enforcement.** `getNodes(key, k)` returns up to
   `k` distinct fallbacks, but the matcher only routes to the primary
   today.

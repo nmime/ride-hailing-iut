@@ -24,25 +24,37 @@ import { Kafka, EachMessagePayload } from 'kafkajs';
 import { Pool } from 'pg';
 import pino from 'pino';
 
-const log = pino({ level: process.env.LOG_LEVEL ?? 'info', name: 'surge-worker' });
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} must be set`);
+  return value;
+}
 
-const T_LOW  = Number(process.env.SURGE_T_LOW  ?? 0.5);
-const T_HIGH = Number(process.env.SURGE_T_HIGH ?? 1.5);
-const M_MAX  = Number(process.env.SURGE_M_MAX  ?? 3.0);
-const WINDOW_MS = Number(process.env.SURGE_WINDOW_MS ?? 60_000);
-const FLUSH_MS  = Number(process.env.SURGE_FLUSH_MS  ?? 30_000);
+function requiredNumberEnv(name: string) {
+  const value = Number(requiredEnv(name));
+  if (!Number.isFinite(value)) throw new Error(`${name} must be numeric`);
+  return value;
+}
 
-const redis = new Redis(process.env.REDIS_URL ?? 'redis://redis:6379');
-const pg    = new Pool({ connectionString: process.env.DATABASE_URL });
+const log = pino({ level: requiredEnv('LOG_LEVEL'), name: 'surge-worker' });
+
+const T_LOW  = requiredNumberEnv('SURGE_T_LOW');
+const T_HIGH = requiredNumberEnv('SURGE_T_HIGH');
+const M_MAX  = requiredNumberEnv('SURGE_M_MAX');
+const WINDOW_MS = requiredNumberEnv('SURGE_WINDOW_MS');
+const FLUSH_MS  = requiredNumberEnv('SURGE_FLUSH_MS');
+
+const redis = new Redis(requiredEnv('REDIS_URL'));
+const pg    = new Pool({ connectionString: requiredEnv('DATABASE_URL') });
 const kafka = new Kafka({
   clientId: 'surge-worker',
-  brokers: (process.env.KAFKA_BROKERS ?? 'redpanda:9092').split(','),
+  brokers: requiredEnv('KAFKA_BROKERS').split(','),
 });
 const consumer = kafka.consumer({ groupId: 'surge-worker' });
 
 interface ZoneCounts { requests: number; lastSeenIdx: number[]; multiplier: number; }
 const counts = new Map<string, ZoneCounts>();   // zone_id -> rolling counts
-const TICK_RING = 60;                             // 1 minute @ 1-second granularity
+const TICK_RING = Math.max(1, Math.round(WINDOW_MS / 1000));
 let tickIdx = 0;
 
 async function loadZones() {
@@ -60,11 +72,24 @@ async function loadZones() {
 async function whichZone(lon: number, lat: number): Promise<string | null> {
   const { rows } = await pg.query<{ id: string }>(
     `SELECT id FROM surge_zones
-      WHERE ST_Covers(polygon, ST_SetSRID(ST_MakePoint($1,$2),4326)::geography)
+      WHERE ST_Covers(polygon::geometry, ST_SetSRID(ST_MakePoint($1,$2),4326))
       LIMIT 1`,
     [lon, lat],
   );
   return rows[0]?.id ?? null;
+}
+
+async function onlineDriversInZone(zoneId: string): Promise<number> {
+  const { rows } = await pg.query<{ count: string }>(
+    `SELECT COUNT(*) AS count
+       FROM driver_locations dl
+       JOIN drivers d ON d.user_id = dl.driver_id
+       JOIN surge_zones z ON z.id = $1
+      WHERE d.status = 'online'
+        AND ST_Covers(z.polygon::geometry, dl.location::geometry)`,
+    [zoneId],
+  );
+  return Number(rows[0]?.count ?? 0);
 }
 
 async function onTripEvent({ message }: EachMessagePayload) {
@@ -83,10 +108,7 @@ async function tick() {
   for (const [zoneId, z] of counts) {
     // requests in last minute = sum over the ring
     const requests = z.lastSeenIdx.reduce((a, b) => a + b, 0);
-    // approximate online drivers in this zone = count members of GEO set
-    // intersecting the zone bounding box. For the demo, we don't compute
-    // this exactly — we use total online drivers as a proxy.
-    const drivers = await redis.zcard('driver:online') || 1;
+    const drivers = await onlineDriversInZone(zoneId) || 1;
     const ratio = requests / drivers;
 
     let m = z.multiplier;
@@ -118,7 +140,7 @@ async function flushToDb() {
 async function main() {
   await loadZones();
   await consumer.connect();
-  await consumer.subscribe({ topic: process.env.TOPIC_TRIP_EVENTS ?? 'trip.events.v1' });
+  await consumer.subscribe({ topic: requiredEnv('TOPIC_TRIP_EVENTS') });
   consumer.run({ eachMessage: onTripEvent });
 
   setInterval(() => { tick().catch((e) => log.error(e)); }, 1_000);

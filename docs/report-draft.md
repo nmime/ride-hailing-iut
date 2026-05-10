@@ -86,8 +86,8 @@ load.
 
 ## 3.5 Out of scope
 
-Real payments (we mock the PSP), driver onboarding/KYC, geocoding (we ask
-clients to send coordinates), and ratings.
+External payment-provider integration, formal driver onboarding/KYC,
+geocoding (clients send coordinates), and ratings.
 
 # 4. Domain Model and ER Diagram (R2)
 
@@ -199,7 +199,7 @@ two materialised views:
 - `users`, `drivers`, `vehicles` — identity.
 - `driver_locations`, `surge_zones` — spatial state.
 - `trips`, `trip_events`, `fare_records` — booking lifecycle and audit.
-- `payment_methods` — placeholder; real PSP integration is out of scope.
+- `payment_methods` — tokenised payment references; external PSP integration is out of scope.
 - `audit_log` — admin-visible action log.
 - Materialised views — `mv_driver_daily`, `mv_hourly_demand` (refreshed nightly).
 
@@ -218,7 +218,14 @@ The spec explicitly accepts Redis (key/value) and PostGIS (spatial) as
 "additional data models." We use both. PostGIS satisfies R5 on its own;
 Redis is included because it's load-bearing for the geosearch hot path.
 
-# 5. From-Scratch Component (R11) — Consistent-Hash Ring
+# 5. From-Scratch Components (R11)
+
+We delivered two from-scratch components instead of one: a consistent-hash
+ring (primary) and a token-bucket rate limiter. Both are implemented from
+the cited references with no third-party algorithm dependency, both are
+covered by unit tests, and both are wired into the running system.
+
+## 5.1 Consistent-Hash Ring (`libs/consistent-hash`)
 
 See `libs/consistent-hash/README.md` for the full write-up. Summary:
 
@@ -241,6 +248,33 @@ See `libs/consistent-hash/README.md` for the full write-up. Summary:
   when a node is removed.
 - **What we didn't build.** Bounded-load variant (Mirrokni–Thorup–
   Zadimoghaddam, 2016), state migration on rebalance.
+
+## 5.2 Token-Bucket Rate Limiter (`libs/ratelimiter`)
+
+See `libs/ratelimiter/README.md` for the full write-up. Summary:
+
+- **What.** Lazy-refill token-bucket with a small `TokenBucketStore`
+  interface and two backends — in-memory and Redis (atomic via Lua).
+- **Why.** Brute-force attempts on `/auth/login` and chatty driver apps
+  flooding `/ingest/v1/locations` would otherwise dominate the API
+  budget. A per-IP and per-user bucket gives stable tail latencies under
+  bursty traffic.
+- **Algorithm.** On every `take(key)`: fetch `(tokens, lastRefillMs)`,
+  refill `min(burst, tokens + (now - last) * rate/1000)`, deduct one,
+  persist. The Redis backend ports the same arithmetic to Lua so the
+  decision is server-side atomic across api replicas.
+- **Integration.** Global Nest guard at `apps/api/src/ratelimit/`
+  routes auth requests to a 10-burst/1-rps bucket and authenticated
+  requests to a 60-burst/20-rps bucket. Denials emit a
+  `ridex_ratelimit_decisions_total{outcome="denied"}` counter visible
+  in Grafana, return `429` with `Retry-After`, and increment the
+  Prometheus deny rate panel.
+- **Tests.** Seven property tests in `libs/ratelimiter/test/bucket.test.ts`
+  with a fake clock: bucket starts full, denial after burst, refill at
+  configured rate, idle cap at burst, per-key isolation, concurrent
+  takes still serialise.
+- **What we didn't build.** Distributed leaky-bucket variant; weighted
+  / token-cost-per-route policies (every endpoint costs 1 today).
 
 # 6. Architecture and Diagrams
 
@@ -310,6 +344,20 @@ links directly to its trace span in Tempo. Required screenshots:
 3. A Prometheus metric (`http_server_request_duration_seconds_bucket`) for
    the `/trips` endpoint, faceted by status code.
 
+The API also exposes its own custom counters and gauges at `/metrics`:
+
+- `ridex_trip_events_total{event_type}` — every lifecycle transition
+  (`requested`, `started`, `completed`, `cancelled`, `rated`).
+- `ridex_drivers_online` (gauge) — count from Postgres,
+  refreshed every 10 s by `MetricsController`.
+- `ridex_drivers_online_redis` (gauge) — same count from the Redis
+  GEO set; divergence indicates a cache anomaly.
+- `ridex_ratelimit_decisions_total{bucket,outcome}` — allowed vs denied
+  decisions per bucket.
+
+The deep `/readyz` endpoint reports `503` if either Postgres or Redis is
+unavailable, and is the readiness probe behind the gateway.
+
 # 12. Testing and Known Limitations
 
 - Unit tests for the consistent-hash ring (13 tests, see `libs/consistent-hash/test/`).
@@ -317,10 +365,10 @@ links directly to its trace span in Tempo. Required screenshots:
   completes" flow runnable from the seed data.
 - **Known limitations.** The bounded-load consistent-hash variant is not
   implemented; on heavy skew a single matcher replica can hot-spot.
-  Geocoding (address → lat/lon) is delegated to clients. Driver
-  payouts and rider receipts are mocked. The frontend is intentionally
-  minimal — the spec allows AI-generated UI but real polish is out of
-  scope for the three-week timeline.
+  Geocoding (address -> lat/lon) is delegated to clients. Driver
+  payouts and rider receipts are not part of this course project.
+  The frontend is intentionally minimal because the grading focus is the
+  backend, data layer, orchestration, and observability.
 
 # 13. Team Contribution Table
 

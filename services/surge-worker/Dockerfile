@@ -12,6 +12,7 @@ RUN pnpm --filter @ridex/surge-worker build
 FROM node:20-alpine AS runtime
 WORKDIR /app/services/surge-worker
 COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/services/surge-worker/node_modules node_modules
 COPY --from=build /app/services/surge-worker/dist         dist
 COPY --from=build /app/services/surge-worker/package.json package.json
 CMD ["node", "dist/index.js"]

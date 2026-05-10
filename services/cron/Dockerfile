@@ -12,6 +12,7 @@ RUN pnpm --filter @ridex/cron build
 FROM node:20-alpine AS runtime
 WORKDIR /app/services/cron
 COPY --from=build /app/node_modules /app/node_modules
+COPY --from=build /app/services/cron/node_modules node_modules
 COPY --from=build /app/services/cron/dist         dist
 COPY --from=build /app/services/cron/package.json package.json
 CMD ["node", "dist/index.js"]
