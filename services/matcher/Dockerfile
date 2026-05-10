@@ -16,6 +16,7 @@ RUN pnpm --filter @ridex/consistent-hash build && \
 FROM node:20-alpine AS runtime
 WORKDIR /app
 COPY --from=build /app/node_modules                node_modules
+COPY --from=build /app/services/matcher/node_modules services/matcher/node_modules
 COPY --from=build /app/libs/consistent-hash        libs/consistent-hash
 COPY --from=build /app/services/matcher/dist       services/matcher/dist
 COPY --from=build /app/services/matcher/package.json services/matcher/

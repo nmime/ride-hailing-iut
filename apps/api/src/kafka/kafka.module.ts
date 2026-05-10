@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { Kafka, Producer } from 'kafkajs';
 
+import { requiredEnv } from '../common/env';
+
 export const KAFKA_PRODUCER = Symbol.for('KAFKA_PRODUCER');
 
 @Global()
@@ -10,8 +12,8 @@ export const KAFKA_PRODUCER = Symbol.for('KAFKA_PRODUCER');
       provide: KAFKA_PRODUCER,
       useFactory: async (): Promise<Producer> => {
         const kafka = new Kafka({
-          clientId: process.env.KAFKA_CLIENT_ID ?? 'ridex-api',
-          brokers: (process.env.KAFKA_BROKERS ?? 'redpanda:9092').split(','),
+          clientId: requiredEnv('KAFKA_CLIENT_ID'),
+          brokers: requiredEnv('KAFKA_BROKERS').split(','),
         });
         const producer = kafka.producer({ allowAutoTopicCreation: true });
         await producer.connect();

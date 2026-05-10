@@ -1,17 +1,22 @@
 import { Global, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_GUARD } from '@nestjs/core';
+import { ConfigModule } from '@nestjs/config';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
+import { requiredEnv } from '../common/env';
 
 @Global()
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'dev-only-secret',
-      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN ?? '24h' },
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: () => ({
+        secret: requiredEnv('JWT_SECRET', { minLength: 32, secret: true }),
+        signOptions: { expiresIn: requiredEnv('JWT_EXPIRES_IN') },
+      }),
     }),
   ],
   controllers: [AuthController],

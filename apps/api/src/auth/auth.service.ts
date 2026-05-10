@@ -20,8 +20,8 @@ export class AuthService {
     private readonly jwt: JwtService,
   ) {}
 
-  /** Register a new user. Riders go straight in; drivers also need a row
-   *  in `drivers` — for simplicity we create a placeholder license. */
+  /** Register a new user. Riders go straight in; drivers also provide
+   *  licence details so the driver profile is complete from day one. */
   async signup(dto: SignupDto) {
     const exists = await this.db.query(
       `SELECT 1 FROM users WHERE email = $1 OR phone = $2`, [dto.email, dto.phone],
@@ -44,8 +44,8 @@ export class AuthService {
       if (dto.role === 'driver') {
         await client.query(
           `INSERT INTO drivers (user_id, license_number, license_expires_on, status)
-           VALUES ($1, $2, CURRENT_DATE + INTERVAL '5 years', 'offline')`,
-          [user.id, `TMP-${user.id.slice(0,8).toUpperCase()}`],
+           VALUES ($1, $2, $3::date, 'offline')`,
+          [user.id, dto.license_number, dto.license_expires_on],
         );
       }
       await client.query('COMMIT');

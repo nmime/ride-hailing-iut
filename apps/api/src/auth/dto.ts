@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsString, Matches, MinLength, ValidateIf } from 'class-validator';
 
 export class SignupDto {
   @ApiProperty({ enum: ['rider','driver'] })
@@ -21,6 +21,16 @@ export class SignupDto {
   @ApiProperty()
   @MinLength(8)
   password!: string;
+
+  @ApiProperty({ required: false, example: 'TX-4242' })
+  @ValidateIf((dto: SignupDto) => dto.role === 'driver')
+  @IsString() @MinLength(4)
+  license_number?: string;
+
+  @ApiProperty({ required: false, example: '2031-12-31' })
+  @ValidateIf((dto: SignupDto) => dto.role === 'driver')
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'license_expires_on must be YYYY-MM-DD' })
+  license_expires_on?: string;
 }
 
 export class LoginDto {

@@ -1,29 +1,31 @@
 -- seed.sql
--- Demo data so the stack is interactive on first boot. Idempotent on a fresh DB.
+-- Demo data so the stack is interactive on first boot.
 -- Coordinates are around Tashkent (41.31, 69.27) for visual demo on the map.
+-- __RIDEX_DEV_PASSWORD_HASH__ is replaced by apps/api/src/scripts/seed.ts
+-- with a real argon2id hash of RIDEX_SEED_PASSWORD.
 
 BEGIN;
 
 -- Admin
 INSERT INTO users (id, role, full_name, email, phone, password_hash) VALUES
     ('00000000-0000-0000-0000-00000000a000', 'admin',  'Demo Admin',
-     'admin@ridex.test', '+998900000000', '$argon2id$placeholder');
+     'admin@ridex.test', '+998900000000', '__RIDEX_DEV_PASSWORD_HASH__');
 
 -- Riders
 INSERT INTO users (id, role, full_name, email, phone, password_hash) VALUES
     ('00000000-0000-0000-0000-00000000c001', 'rider',  'Aziza Rider',
-     'aziza@ridex.test',  '+998901111111', '$argon2id$placeholder'),
+     'aziza@ridex.test',  '+998901111111', '__RIDEX_DEV_PASSWORD_HASH__'),
     ('00000000-0000-0000-0000-00000000c002', 'rider',  'Bekzod Rider',
-     'bekzod@ridex.test', '+998902222222', '$argon2id$placeholder');
+     'bekzod@ridex.test', '+998902222222', '__RIDEX_DEV_PASSWORD_HASH__');
 
 -- Drivers (need a row in users first)
 INSERT INTO users (id, role, full_name, email, phone, password_hash) VALUES
     ('00000000-0000-0000-0000-00000000e001', 'driver', 'Davron Driver',
-     'davron@ridex.test', '+998903333333', '$argon2id$placeholder'),
+     'davron@ridex.test', '+998903333333', '__RIDEX_DEV_PASSWORD_HASH__'),
     ('00000000-0000-0000-0000-00000000e002', 'driver', 'Eldor Driver',
-     'eldor@ridex.test',  '+998904444444', '$argon2id$placeholder'),
+     'eldor@ridex.test',  '+998904444444', '__RIDEX_DEV_PASSWORD_HASH__'),
     ('00000000-0000-0000-0000-00000000e003', 'driver', 'Farhod Driver',
-     'farhod@ridex.test', '+998905555555', '$argon2id$placeholder');
+     'farhod@ridex.test', '+998905555555', '__RIDEX_DEV_PASSWORD_HASH__');
 
 INSERT INTO drivers (user_id, license_number, license_expires_on, status) VALUES
     ('00000000-0000-0000-0000-00000000e001', 'TX-1001', '2030-01-01', 'online'),
@@ -58,8 +60,8 @@ INSERT INTO trips (id, rider_id, driver_id, vehicle_id, status, pickup, dropoff,
                    fare_total, currency)
 SELECT
     '00000000-0000-0000-0000-00000000f001',
-    '00000000-0000-0000-0000-0000000000r1',
-    '00000000-0000-0000-0000-0000000000d1',
+    '00000000-0000-0000-0000-00000000c001',
+    '00000000-0000-0000-0000-00000000e001',
     v.id,
     'completed',
     ST_SetSRID(ST_MakePoint(69.279, 41.311),4326)::geography,
@@ -71,7 +73,7 @@ SELECT
     now() - interval '2 hours' + interval '20 minutes',
     18.50, 'USD'
 FROM vehicles v
-WHERE v.driver_id = '00000000-0000-0000-0000-0000000000d1' AND v.is_active
+WHERE v.driver_id = '00000000-0000-0000-0000-00000000e001' AND v.is_active
 LIMIT 1;
 
 INSERT INTO fare_records (trip_id, base_fare, distance_km, duration_min, surge_multiplier, total) VALUES
@@ -79,7 +81,7 @@ INSERT INTO fare_records (trip_id, base_fare, distance_km, duration_min, surge_m
 
 INSERT INTO trip_events (trip_id, event_type, payload) VALUES
     ('00000000-0000-0000-0000-00000000f001', 'requested',  '{"by":"rider"}'),
-    ('00000000-0000-0000-0000-00000000f001', 'matched',    '{"driver":"d1"}'),
+    ('00000000-0000-0000-0000-00000000f001', 'matched',    '{"driver_id":"00000000-0000-0000-0000-00000000e001"}'),
     ('00000000-0000-0000-0000-00000000f001', 'started',    '{}'),
     ('00000000-0000-0000-0000-00000000f001', 'completed',  '{"fare":18.50}');
 

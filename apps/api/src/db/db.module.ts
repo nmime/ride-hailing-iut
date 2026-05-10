@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { Pool } from 'pg';
 
+import { requiredEnv } from '../common/env';
+
 export const PG_POOL = Symbol.for('PG_POOL');
 
 @Global()
@@ -9,7 +11,7 @@ export const PG_POOL = Symbol.for('PG_POOL');
     {
       provide: PG_POOL,
       useFactory: () => new Pool({
-        connectionString: process.env.DATABASE_URL,
+        connectionString: requiredEnv('DATABASE_URL'),
         max: 10,
         idleTimeoutMillis: 30_000,
       }),

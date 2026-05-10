@@ -15,7 +15,7 @@ x-api-build: &api-build
     redpanda: { condition: service_healthy }
   networks: [ridex]
   healthcheck:
-    test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthz"]
+    test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/readyz"]
     interval: 10s
     timeout: 3s
     retries: 5
@@ -113,6 +113,7 @@ services:
     depends_on:
       redis:    { condition: service_healthy }
       redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     expose: ["3100"]
     networks: [ridex]
 
@@ -150,7 +151,9 @@ services:
       dockerfile: services/ingestor/Dockerfile
     env_file: .env
     depends_on:
+      redis:    { condition: service_healthy }
       redpanda: { condition: service_healthy }
+      postgres: { condition: service_healthy }
     expose: ["3200"]
     networks: [ridex]
 
@@ -181,6 +184,10 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        VITE_MAP_PROVIDER: ${VITE_MAP_PROVIDER:-auto}
+        VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
+        VITE_YANDEX_MAPS_LANG: ${VITE_YANDEX_MAPS_LANG:-en_US}
     env_file: .env
     expose: ["80"]
     networks: [ridex]
@@ -222,6 +229,16 @@ services:
       - ./infra/otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - promdata:/prometheus
     expose: ["9090"]
+    networks: [ridex]
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: ridex-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    depends_on:
+      postgres: { condition: service_healthy }
+    expose: ["9187"]
     networks: [ridex]
 
   loki:
