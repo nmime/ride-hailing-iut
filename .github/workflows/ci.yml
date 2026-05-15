@@ -55,6 +55,9 @@ jobs:
         run: |
           docker compose exec -T api node dist/scripts/migrate.js
           docker compose exec -T api node dist/scripts/seed.js
+      - name: Export smoke test environment
+        run: |
+          grep -E '^(RIDEX_SEED_PASSWORD|RIDEX_SMOKE_(RIDER_PHONE|DRIVER_PHONE|ADMIN_PHONE|DRIVER_ID))=' .env >> "$GITHUB_ENV"
       - name: Smoke test
         run: bash scripts/smoke.sh
       - name: Dump logs on failure
