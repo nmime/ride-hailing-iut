@@ -78,7 +78,16 @@ volumes so data survives `docker compose down`.
 ```bash
 curl -fsS http://localhost/api/healthz
 # expects: {"status":"ok"}
+
+# after migrations + seed, run the end-to-end smoke flow
+# Required env vars: RIDEX_SEED_PASSWORD, RIDEX_SMOKE_RIDER_PHONE,
+# RIDEX_SMOKE_DRIVER_PHONE, RIDEX_SMOKE_ADMIN_PHONE, RIDEX_SMOKE_DRIVER_ID
+bash scripts/smoke.sh http://localhost
 ```
+
+The smoke script checks gateway health, API readiness (`/api/readyz`), Swagger reachability,
+seeded-user login, driver location ingest, matching, trip start/complete, rider rating, and
+admin reports.
 
 ## Repository layout
 

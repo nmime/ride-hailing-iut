@@ -16,6 +16,13 @@ scrape_configs:
       - targets: ['postgres-exporter:9187']
         labels: { service: postgres }
 
+
+  - job_name: ridex-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['api:3000']
+        labels: { service: api }
+
   - job_name: ridex-cron
     static_configs:
       - targets: ['cron:9300']

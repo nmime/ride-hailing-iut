@@ -91,19 +91,41 @@ class VehiclesService {
   }
 
   async create(driverId: string, dto: CreateVehicleDto) {
+    const client = await this.db.connect();
     try {
-      const { rows } = await this.db.query<VehicleRow>(
-        `INSERT INTO vehicles (driver_id, plate, make, model, year, color, capacity)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING *`,
-        [driverId, dto.plate, dto.make, dto.model, dto.year, dto.color, dto.capacity],
+      await client.query('BEGIN');
+
+      const active = await client.query<{ has_active: boolean }>(
+        `SELECT EXISTS (
+           SELECT 1 FROM vehicles WHERE driver_id = $1 AND is_active = TRUE
+         ) AS has_active`,
+        [driverId],
       );
+      const shouldActivate = !active.rows[0]?.has_active;
+
+      const { rows } = await client.query<VehicleRow>(
+        `INSERT INTO vehicles (driver_id, plate, make, model, year, color, capacity, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING *`,
+        [
+          driverId,
+          dto.plate,
+          dto.make,
+          dto.model,
+          dto.year,
+          dto.color,
+          dto.capacity,
+          shouldActivate,
+        ],
+      );
+      await client.query('COMMIT');
       return rows[0];
     } catch (e) {
-      if (isPgUniqueViolation(e)) {
-        throw new ConflictException('plate already registered');
-      }
+      await client.query('ROLLBACK');
+      throwVehicleConflict(e);
       throw e;
+    } finally {
+      client.release();
     }
   }
 
@@ -143,7 +165,7 @@ class VehiclesService {
         return result.rows[0];
       } catch (e) {
         await client.query('ROLLBACK');
-        if (isPgUniqueViolation(e)) throw new ConflictException('plate already registered');
+        throwVehicleConflict(e);
         throw e;
       } finally {
         client.release();
@@ -160,7 +182,7 @@ class VehiclesService {
       if (!rows[0]) throw new NotFoundException(`vehicle ${vehicleId} not found`);
       return rows[0];
     } catch (e) {
-      if (isPgUniqueViolation(e)) throw new ConflictException('plate already registered');
+      throwVehicleConflict(e);
       throw e;
     }
   }
@@ -175,8 +197,22 @@ class VehiclesService {
   }
 }
 
-function isPgUniqueViolation(e: unknown): boolean {
-  return typeof e === 'object' && e !== null && (e as { code?: string }).code === '23505';
+function uniqueViolationConstraint(e: unknown): string | null {
+  if (typeof e !== 'object' || e === null) return null;
+  const pgError = e as { code?: string; constraint?: string };
+  return pgError.code === '23505' ? (pgError.constraint ?? 'unknown') : null;
+}
+
+function throwVehicleConflict(e: unknown): void {
+  const constraint = uniqueViolationConstraint(e);
+  if (!constraint) return;
+  if (constraint === 'vehicles_plate_key') {
+    throw new ConflictException('plate already registered');
+  }
+  if (constraint === 'one_active_vehicle_per_driver') {
+    throw new ConflictException('driver already has an active vehicle');
+  }
+  throw new ConflictException('vehicle conflict');
 }
 
 @ApiTags('vehicles')
