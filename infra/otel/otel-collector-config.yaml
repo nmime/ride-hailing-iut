@@ -1,5 +1,5 @@
-# OpenTelemetry Collector — single ingestion point for traces / metrics / logs.
-# All three signals are correlated in Grafana via trace_id.
+# OpenTelemetry Collector — ingestion point for application traces and OTLP
+# metrics. Container logs are shipped to Loki by Promtail.
 
 receivers:
   otlp:
@@ -24,9 +24,6 @@ exporters:
   prometheus:
     endpoint: 0.0.0.0:8889
 
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
-
 service:
   pipelines:
     traces:
@@ -38,8 +35,3 @@ service:
       receivers:  [otlp]
       processors: [resource, batch]
       exporters:  [prometheus]
-
-    logs:
-      receivers:  [otlp]
-      processors: [resource, batch]
-      exporters:  [loki]

@@ -32,6 +32,7 @@ flowchart LR
 
   subgraph Obs[Observability]
     OT[OTel collector]:::obs
+    PT[Promtail]:::obs
     PR[(Prometheus)]:::obs
     LK[(Loki)]:::obs
     TP[(Tempo)]:::obs
@@ -69,14 +70,14 @@ flowchart LR
 
   API1 -. OTLP .-> OT
   API2 -. OTLP .-> OT
-  WS   -. OTLP .-> OT
-  ING  -. OTLP .-> OT
-  M1   -. OTLP .-> OT
-  M2   -. OTLP .-> OT
+  WS   -. logs .-> PT
+  ING  -. logs .-> PT
+  M1   -. logs .-> PT
+  M2   -. logs .-> PT
 
   OT --> TP
   OT --> PR
-  OT --> LK
+  PT --> LK
   GF --> TP
   GF --> PR
   GF --> LK
@@ -133,6 +134,7 @@ flowchart LR
   redis((redis)):::store
   redpanda((redpanda)):::store
   otel((otel-collector)):::obs
+  promtail[promtail]:::obs
 
   api[api #1, #2]:::svc
   matcher[matcher #1, #2]:::svc
@@ -162,10 +164,12 @@ flowchart LR
   api --> gateway
   web --> gateway
   wsg --> gateway
+  ingestor --> gateway
+  grafana --> gateway
 
   otel --> tempo
-  otel --> loki
   otel --> prometheus
+  loki --> promtail
   prometheus --> grafana
   loki       --> grafana
   tempo      --> grafana

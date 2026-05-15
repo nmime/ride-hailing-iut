@@ -44,7 +44,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{service=\"ridex-api\"} | json | level=\"error\""
+          "expr": "{service=\"api\"} | json | level=\"error\""
         }
       ]
     },

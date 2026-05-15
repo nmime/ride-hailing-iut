@@ -199,9 +199,11 @@ services:
     image: nginx:1.27-alpine
     container_name: ridex-gateway
     depends_on:
-      api: { condition: service_started }
-      web: { condition: service_started }
+      api:        { condition: service_started }
+      web:        { condition: service_started }
       ws-gateway: { condition: service_started }
+      ingestor:   { condition: service_started }
+      grafana:    { condition: service_started }
     ports:
       - "80:80"
       # - "443:443"  # uncomment in production with mounted certs
@@ -250,6 +252,18 @@ services:
     expose: ["3100"]
     networks: [ridex]
 
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: ridex-promtail
+    command: ["-config.file=/etc/promtail/config.yaml"]
+    volumes:
+      - ./infra/otel/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      loki: { condition: service_started }
+    networks: [ridex]
+
   tempo:
     image: grafana/tempo:2.4.1
     container_name: ridex-tempo
@@ -267,12 +281,13 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost/grafana/}
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
       - grafanadata:/var/lib/grafana
-    ports:
-      - "3001:3000"
+    expose: ["3000"]
     networks: [ridex]
 
 networks:

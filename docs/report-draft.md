@@ -1,6 +1,6 @@
 ---
 title:  "RideX — A Ride-Hailing Mini-Platform"
-team:   "TEAM_NAME"
+team:   "RideX Team"
 motto:  "Always one stop ahead"
 date:   "May 2026"
 ---
@@ -13,15 +13,14 @@ date:   "May 2026"
 
 # Cover Page
 
-- **Team:** TEAM\_NAME — *Always one stop ahead*
+- **Team:** RideX Team — *Always one stop ahead*
 - **Members:**
-  - Lead — Name (ID NNN-NNN-NNN) — backend + DevOps
-  - Member — Name (ID …) — backend + matcher
-  - Member — Name (ID …) — frontend + WS
-  - Member — Name (ID …) — observability + report
-  - Member — Name (ID …) — DB + tests
-- **GitHub:** https://github.com/…
-- **Deployed:** https://…
+  - Lead — Mejenkov Nikita (U2310166) — team lead + backend integration
+  - Member — Marat Kinzyabulatov (U2310138) — DevOps + deployment
+  - Member — Yunusov Saidamir (U2310295) — backend API + documentation
+  - Member — Timur Miraxmetov (U2310170) — frontend + WebSocket flows
+- **GitHub:** https://github.com/nmime/ride-hailing-iut
+- **Deployed:** https://ride-hailing.funfiesta.games
 - **Date:** 17 May 2026
 
 # Abstract
@@ -236,11 +235,12 @@ See `libs/consistent-hash/README.md` for the full write-up. Summary:
   path, candidate trips). A naive `hash % N` partitioning would remap
   every driver every time a replica scales; with consistent hashing only
   ~1/N drivers re-shard.
-- **Hash function.** Murmur3 32-bit, also written from scratch and verified
-  against the canonical Appleby test vectors (e.g.
-  `murmur3_32("hello") == 0x248bfa47`). We tried FNV-1a 32-bit first and
-  measured load distribution at 0.5×–1.5× the mean — Murmur3's better
-  avalanche brought it to ±10 %.
+- **Hash function.** Murmur3 32-bit, also written from scratch. We cite
+  Austin Appleby's `smhasher` repository only as the original public
+  reference for MurmurHash3 and its expected behavior; RideX does not
+  import or vendor that code. We tried FNV-1a 32-bit first and measured
+  load distribution at 0.5×–1.5× the mean — Murmur3's better avalanche
+  brought it to ±10 %.
 - **Integration.** The matcher loads the replica list at boot, builds an
   identical ring on every replica, and bails on Kafka messages whose
   `driver_id` doesn't hash to the local replica's slot. Tests verify
@@ -287,6 +287,75 @@ versions here:
 - Sequence diagram for "rider requests a ride" happy path
 - BPMN diagrams for the surge stream and nightly aggregates batch pipelines
 
+## 6.1 Service responsibilities
+
+| Service | Runtime | Responsibility | Main dependencies |
+|---|---|---|---|
+| `gateway` | Nginx | Single public entrypoint, path routing, API load balancing, optional TLS termination | api, web, ws-gateway, ingestor, Grafana |
+| `web` | React/Vite served by Nginx | Rider, driver, and admin user interface | Gateway REST, WebSocket, ingest paths |
+| `api` | NestJS + Fastify | Auth, trips, drivers, vehicles, admin reports, metrics, Swagger | Postgres, Redis, Redpanda |
+| `ingestor` | Fastify worker | Accept driver location pings, update Redis GEO, publish location stream | Redis, Redpanda, Postgres |
+| `matcher-0/1` | Node worker | Consume requested trips and online-driver state, assign nearest driver | Redpanda, Redis, Postgres, consistent hash library |
+| `ws-gateway` | Socket.IO | Subscribe clients to trip rooms and fan out trip/location events | Redpanda, Redis, Postgres |
+| `surge-worker` | Node worker | Maintain sliding-window demand/supply ratio and surge cache | Redpanda, Redis, Postgres/PostGIS |
+| `cron` | Node cron worker | Refresh materialized views and export completed-trip CSVs | Postgres, exports volume |
+| `otel-collector` | OTel Collector | Receive traces and OTLP metrics | Tempo, Prometheus |
+| `promtail` | Promtail | Tail Docker container logs | Loki |
+| `grafana` | Grafana | Unified dashboard for metrics, logs, and traces | Prometheus, Loki, Tempo |
+
+The gateway keeps the public surface small. Locally and in production, the
+browser only needs one origin: `/` for the app, `/api/` for REST,
+`/ws/` for Socket.IO, `/ingest/` for driver pings, and `/grafana/` for
+operations. Internal service ports remain private to the Docker network.
+
+## 6.2 Happy-path data flow
+
+1. A rider sends `POST /api/trips` with pickup and dropoff coordinates.
+2. Nginx forwards the request to one of the API replicas.
+3. The API validates JWT and DTO fields, writes a `requested` trip row,
+   inserts a trip event, and publishes `trip.requested` to Redpanda.
+4. The rider browser opens a Socket.IO connection and subscribes to the
+   new trip room.
+5. A matcher replica consumes `trip.requested`, queries Redis GEO for
+   online drivers near pickup, verifies the candidate in Postgres, and
+   writes the selected driver/vehicle back to the trip.
+6. The matcher inserts and publishes `trip.matched`.
+7. The WebSocket gateway consumes the event and emits `trip:event` to the
+   rider room and driver room.
+8. The driver starts and completes the trip through REST lifecycle
+   endpoints. The API computes the fare, reads surge from Redis first,
+   falls back to Postgres if needed, stores `fare_records`, and emits the
+   final events.
+
+This flow demonstrates the main architectural decisions: Postgres remains
+the source of truth, Redpanda decouples event consumers, Redis accelerates
+hot read paths, and WebSocket avoids wasteful polling for trip status.
+
+## 6.3 Data stores and ownership
+
+| Data | Source of truth | Derived/cache copy | Why |
+|---|---|---|---|
+| Users, drivers, vehicles | Postgres | none | Transactional identity and constraints |
+| Trips and fares | Postgres | trip events in Redpanda | ACID lifecycle state plus replayable event stream |
+| Latest driver location | Postgres `driver_locations` | Redis GEO `driver:online` | Durable latest point plus fast radius search |
+| Surge zones | Postgres/PostGIS | Redis `surge:zone:<id>` hash | Admin persistence plus low-latency fare quote |
+| Daily reports | Postgres materialized views | CSV export volume | Fast admin reads and accounting export |
+| Logs/traces/metrics | Runtime services | Loki/Tempo/Prometheus | Operational debugging and rubric evidence |
+
+## 6.4 Failure handling
+
+The project uses simple, explainable failure modes suitable for a course
+system:
+
+- API readiness checks fail if Postgres, Redis, or Kafka are unavailable.
+- Gateway health checks call the API liveness endpoint.
+- Redis GEO is a cache; driver locations are also stored in Postgres.
+- Surge cache misses fall back to the persisted zone multiplier.
+- Redpanda events are append-only, so matchers and WebSocket gateway can
+  resume consumption after restarts.
+- Cron exposes `ridex_batch_runs_total` and `ridex_batch_failures_total`
+  so failed batch refreshes are visible in Grafana.
+
 # 7. API Design (R4, R7)
 
 REST endpoints listed in `docs/api-endpoints.md`. Live docs at
@@ -307,6 +376,62 @@ into the report when you finalise it. Reproduce the numbers with
 `EXPLAIN ANALYZE` and `k6 run` and paste the screenshots. Quantitative
 *before/after* is required by R6.
 
+## 8.1 Relational schema highlights
+
+The schema is intentionally normalized around the trip lifecycle. `users`
+stores shared identity fields, while `drivers` stores driver-only profile
+and availability state. `vehicles` belongs to a driver and supports one
+active vehicle per driver through application logic. `trips` is the central
+business table; it links rider, driver, vehicle, pickup/dropoff geography,
+timestamps, final fare, and status. `trip_events` provides an append-only
+audit history for every lifecycle transition. `fare_records` stores the
+fare breakdown separately from the trip so the final receipt can be queried
+without re-running pricing logic.
+
+PostGIS geography columns are used for `driver_locations`, `surge_zones`,
+`trips.pickup`, and `trips.dropoff`. This avoids storing coordinates as
+unvalidated numeric pairs and gives the database native distance and
+polygon-containment operators.
+
+## 8.2 Constraints and integrity
+
+| Rule | Enforced by |
+|---|---|
+| Unique email and phone | `users.email`, `users.phone` unique constraints |
+| Driver profile only for driver users | Foreign key from `drivers.user_id` to `users.id` |
+| Vehicle plate uniqueness | Unique `vehicles.plate` |
+| Trip status values | `trip_status` enum |
+| Driver status values | `driver_status` enum |
+| Fare exists once per completed trip | Unique `fare_records.trip_id` |
+| Rating once per trip | Unique `trip_ratings.trip_id` |
+| Driver rating aggregate stays current | `trip_ratings_apply_on_insert` trigger |
+| Spatial lookup performance | GiST indexes on geography columns |
+
+The API uses parameterized SQL through `pg`; no endpoint constructs SQL by
+concatenating user input. DTO validation rejects invalid coordinates before
+they reach the data layer.
+
+## 8.3 Index and cache decisions
+
+| Path | Optimization | Reason |
+|---|---|---|
+| Nearby drivers | Redis GEO `driver:online` | Driver matching is the hottest read path; in-memory geosearch avoids a PostGIS query on every request |
+| Cold location lookup | GiST index on `driver_locations.location` | Keeps historical/latest spatial checks fast when Redis is cold |
+| Rider active/history view | `trips_rider_status_idx` | Rider dashboard filters by rider and status |
+| Driver active/history view | `trips_driver_status_idx` | Driver dashboard filters by driver and status |
+| Recent trip sorting | `trips_requested_at_idx` | History and admin workflows order by request time |
+| Phone/admin lookup | GIN trigram index on `users.phone` | Supports fuzzy phone search at scale |
+| Daily driver report | `mv_driver_daily` | Pre-aggregates revenue, distance, and trip count |
+| Hourly demand | `mv_hourly_demand` | Supports demand reporting without scanning raw trips |
+| Surge quote | Redis `surge:zone:<id>` | Fare completion reads surge without hitting Postgres |
+| Rate limiting | Redis token bucket state | Two API replicas share the same quota decisions |
+
+The measured results in `docs/optimisation.md` show Redis geosearch
+dropping nearby-driver lookup from millisecond-level PostGIS reads to
+sub-millisecond Redis reads, and the daily report materialized view
+dropping aggregate latency from hundreds of milliseconds to low
+single-digit milliseconds on the load-test dataset.
+
 # 9. Pipeline (R10)
 
 Two pipelines:
@@ -316,6 +441,51 @@ Two pipelines:
 Both pipelines have BPMN 2.0 diagrams in `docs/bpmn/` (`surge-stream.bpmn`,
 `nightly-aggregates.bpmn`, `trip-lifecycle.bpmn`). Render and embed the
 SVG export of each.
+
+## 9.1 Surge stream workflow
+
+The surge worker subscribes to `trip.events.v1` and processes
+`trip.requested` events. For each request, it identifies the containing
+surge zone using PostGIS polygon containment, increments a rolling
+per-zone window, and periodically compares request count against online
+drivers in the same zone. If demand/supply exceeds `SURGE_T_HIGH`, the
+multiplier rises by 10% up to `SURGE_M_MAX`; if the ratio falls below
+`SURGE_T_LOW`, it decays toward 1.0. Every tick writes the hot value to
+Redis, and a slower flush writes the durable snapshot back to Postgres.
+
+This is a stream pipeline rather than a REST call because it reacts to
+events already produced by the trip lifecycle. Multiple consumers can
+reuse the same Redpanda topic later for analytics without changing the
+API write path.
+
+## 9.2 Batch workflow
+
+The cron worker refreshes two reporting views:
+
+1. `mv_driver_daily` for driver revenue, distance, minutes, and trip count.
+2. `mv_hourly_demand` for demand grouped by hour.
+
+It also exports completed trips to a CSV file in the `exports` named
+volume. The worker exposes a small `/metrics` endpoint with run/failure
+counters, so Prometheus and Grafana can show whether the reporting
+pipeline is healthy.
+
+Batch is appropriate here because admin reports do not require
+millisecond freshness. A nightly/hourly refresh gives predictable query
+latency without making every dashboard request scan raw trip and fare
+tables.
+
+## 9.3 Event topics
+
+| Topic | Producer | Consumers | Purpose |
+|---|---|---|---|
+| `driver.location.v1` | ingestor | matcher, ws-gateway | Latest driver movement and live map updates |
+| `trip.events.v1` | api, matcher | matcher, ws-gateway, surge-worker | Trip lifecycle, matching, surge demand |
+
+Keys are chosen to preserve locality. Driver-location events are keyed by
+`driver_id`; trip events are keyed by `trip_id`. The matcher also applies
+the from-scratch consistent-hash ring so driver ownership changes gently
+when matcher replicas are added or removed.
 
 # 10. Infrastructure and Deployment (R8, R9)
 
@@ -331,15 +501,16 @@ Managed PaaS is forbidden by the spec. Everything is self-hosted via
 
 # 11. Observability (R12)
 
-Every service exports OTLP traces, logs, and metrics to a single
-OpenTelemetry Collector, which fan-outs to Tempo (traces), Loki (logs),
-and Prometheus (metrics). Grafana stitches them together via the
-`trace_id` derived field on Loki, so a log line in the API service
-links directly to its trace span in Tempo. Required screenshots:
+The API exports OpenTelemetry traces to the collector, which writes them
+to Tempo. Prometheus scrapes the collector, Postgres exporter, Redpanda,
+and the cron metrics endpoint. Promtail tails Docker container logs and
+pushes them to Loki. Grafana keeps Prometheus, Loki, and Tempo together
+in one backend view, with the `trace_id` derived field on Loki available
+for request-level correlation. Required screenshots:
 
 1. A trace for a `POST /api/trips` request that traverses gateway → api
    → Postgres → Redpanda.
-2. A Loki query for `service="ridex-api" level="error"` correlated to the
+2. A Loki query for `service="api" level="error"` correlated to the
    same `trace_id`.
 3. A Prometheus metric (`http_server_request_duration_seconds_bucket`) for
    the `/trips` endpoint, faceted by status code.
@@ -358,6 +529,52 @@ The API also exposes its own custom counters and gauges at `/metrics`:
 The deep `/readyz` endpoint reports `503` if either Postgres or Redis is
 unavailable, and is the readiness probe behind the gateway.
 
+## 11.1 Useful Grafana queries
+
+Prometheus:
+
+```promql
+histogram_quantile(
+  0.95,
+  sum(rate(http_server_request_duration_seconds_bucket{http_route="/trips"}[5m])) by (le)
+)
+```
+
+```promql
+sum by (event_type) (rate(ridex_trip_events_total[1m]))
+```
+
+```promql
+ridex_drivers_online
+```
+
+Loki:
+
+```logql
+{service="api"} | json | level="error"
+```
+
+Tempo:
+
+```traceql
+{ resource.service.name = "ridex-api" }
+```
+
+These queries support the screenshots required by R12: one trace, one
+log query, and one metric graph correlated to a user action.
+
+## 11.2 Operational checks
+
+| Check | Expected result |
+|---|---|
+| `GET /healthz` | `{"status":"ok"}` |
+| `GET /readyz` | 200 when Postgres, Redis, and Kafka are reachable |
+| `GET /metrics` | Prometheus text exposition |
+| Grafana `/grafana/` | Dashboard folder `RideX` provisioned |
+| Prometheus target list | OTel collector, Redpanda, Postgres exporter, cron |
+| Loki query | Docker container logs labeled by Compose service |
+| Tempo search | API traces generated by OTel auto-instrumentation |
+
 # 12. Testing and Known Limitations
 
 - Unit tests for the consistent-hash ring (13 tests, see `libs/consistent-hash/test/`).
@@ -370,24 +587,107 @@ unavailable, and is the readiness probe behind the gateway.
   The frontend is intentionally minimal because the grading focus is the
   backend, data layer, orchestration, and observability.
 
+## 12.1 Verification evidence
+
+The final local verification pass used the same path that a new evaluator
+would use from a clean checkout:
+
+```bash
+cp .env.example .env
+pnpm bootstrap
+docker compose exec api node dist/scripts/migrate.js
+docker compose exec api node dist/scripts/seed.js
+bash scripts/smoke.sh http://localhost
+```
+
+The smoke script exercises the actual gateway rather than calling services
+directly. It checks `/healthz`, Swagger reachability, seeded login for
+rider/driver/admin users, driver online status, driver location ingest,
+trip creation, matcher assignment, trip start/completion, and admin report
+access. This is the minimum end-to-end proof that REST, Redis, Redpanda,
+PostGIS, matcher, ingestor, and the admin materialized view are all wired.
+
+The workspace checks also passed:
+
+```bash
+docker compose config --quiet
+pnpm test
+pnpm lint
+pnpm build
+```
+
+## 12.2 API surface summary
+
+The public API is intentionally small and role-oriented:
+
+| Area | Endpoints | Purpose |
+|---|---|---|
+| Auth | `POST /auth/signup`, `POST /auth/login` | Create riders/drivers and issue JWTs |
+| Profile | `GET /me` | Return the authenticated user and driver profile |
+| Vehicles | `GET/POST/PATCH/DELETE /vehicles` | Driver-owned vehicle management |
+| Drivers | `PATCH /drivers/:id/status`, `GET /drivers/nearby` | Availability and Redis-backed coverage lookup |
+| Trips | `POST /trips`, `GET /trips`, `GET /trips/:id`, lifecycle actions | Rider request flow and driver trip execution |
+| Ratings | `POST /trips/:id/rating` | Rider feedback after completed trips |
+| Admin | `GET /admin/reports/daily`, `GET /admin/surge` | Operational reports and surge overview |
+| Ops | `GET /healthz`, `GET /readyz`, `GET /metrics` | Liveness, readiness, and Prometheus metrics |
+
+Swagger UI is served from `/api/docs` through the gateway, so external
+developers do not need source access to inspect request and response
+schemas.
+
+## 12.3 Deployment runbook
+
+The production VM should run the same Compose topology as local development.
+The only required differences are DNS, TLS certificates, and production
+secrets:
+
+1. Point the DNS record to the VM public IP.
+2. Copy `.env.example` to `.env` and replace all development secrets.
+3. Set `GRAFANA_ROOT_URL` to the deployed `/grafana/` URL.
+4. Mount TLS certificates into the Nginx container and enable the `443`
+   listener shown in `infra/nginx/conf.d/default.conf`.
+5. Start the stack with `pnpm bootstrap`.
+6. Run `bash scripts/smoke.sh https://<domain>` from outside the VM.
+7. Open Grafana, generate one trip, and capture the trace/log/metric
+   screenshots required by R12.
+
+This keeps the project compliant with the specification's hosting rule:
+the system runs on a VM with Docker Compose and an API gateway, not on a
+managed PaaS that hides orchestration.
+
+## 12.4 Submission limitations and mitigations
+
+The implementation does not integrate real payments, geocoding, formal
+driver KYC, or mobile push notifications. Those are product extensions,
+not core database/application-design requirements. Coordinates are supplied
+directly by the frontend demo controls. The payment model is represented
+by `payment_methods` and `fare_records`, but external settlement is out of
+scope.
+
+Final repository commits are authored from the `nmime` GitHub account. The
+contribution table below records feature ownership and role-based share for
+the submitted team.
+
 # 13. Team Contribution Table
 
 | Member | Modules / files owned | Commits | % |
 |---|---|---|---|
-| Lead   | …  | … | … |
-| Member | …  | … | … |
-| Member | …  | … | … |
-| Member | …  | … | … |
-| Member | …  | … | … |
+| Mejenkov Nikita (U2310166) | team lead: backend integration, service coordination, final fixes | nmime-authored commits | 25% |
+| Marat Kinzyabulatov (U2310138) | DevOps: Docker Compose, gateway, deployment, environment setup | nmime-authored commits | 25% |
+| Yunusov Saidamir (U2310295) | backend API and documentation: endpoint docs, report, smoke checks | nmime-authored commits | 25% |
+| Timur Miraxmetov (U2310170) | frontend: rider/driver/admin screens, WebSocket UI flow | nmime-authored commits | 25% |
 
-Fill in from `git shortlog -sne v1.0`.
+The table is role-based because the repository is submitted from one GitHub
+account.
 
 # 14. References
 
 - Karger, D. et al. (1997). *Consistent Hashing and Random Trees*. STOC.
 - Kleppmann, M. (2017). *Designing Data-Intensive Applications*. O'Reilly. Ch. 6.
 - Xu, A. (2020). *System Design Interview Vol. 1*. Ch. 5.
-- Appleby, A. (2011). *MurmurHash3*. Public domain. https://github.com/aappleby/smhasher
+- Appleby, A. (2011). *MurmurHash3 / SMHasher*. Public-domain reference and
+  behavioral test-vector source only; RideX implements Murmur3 itself.
+  https://github.com/aappleby/smhasher
 - PostGIS Documentation. https://postgis.net/docs/
 - Redpanda Docs. https://docs.redpanda.com
 - OpenTelemetry Spec. https://opentelemetry.io

@@ -1,15 +1,13 @@
 RideX — Ride-Hailing Mini-Platform
 Database Application & Design, Spring 2026
 
-Deployed URL : https://___FILL_ME_IN___
-GitHub URL   : https://github.com/___FILL_ME_IN___
+Deployed URL : https://ride-hailing.funfiesta.games
+GitHub URL   : https://github.com/nmime/ride-hailing-iut
 Submission   : 2026-05-17
 
 Team
 ----
-Leader  : Name | Student ID | role
-Member  : Name | Student ID | role
-Member  : Name | Student ID | role
-Member  : Name | Student ID | role
-Member  : Name | Student ID | role
-Member  : Name | Student ID | role
+Leader  : Mejenkov Nikita | U2310166 | team lead + backend integration
+Member  : Marat Kinzyabulatov | U2310138 | DevOps + deployment
+Member  : Yunusov Saidamir | U2310295 | backend API + documentation
+Member  : Timur Miraxmetov | U2310170 | frontend + WebSocket flows
