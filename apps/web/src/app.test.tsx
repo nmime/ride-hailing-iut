@@ -26,6 +26,7 @@ vi.mock('socket.io-client', () => ({
 }));
 
 import App from './App';
+import { RatingDialog } from './components/RatingDialog';
 import { api, auth, type AuthSession } from './api/client';
 import { isDriverLocationEvent } from './hooks/useTripSocket';
 
@@ -79,8 +80,44 @@ describe('RideX web app shell', () => {
     expect(html).toContain('Request ride');
     expect(html).toContain('Open driver cockpit');
     expect(html).toContain('Marketplace pulse');
+    expect(html).toContain('36 checks');
     expect(html).toContain('The frontend covers the complete ride lifecycle.');
     expect(html).toContain('Audit reporting');
+  });
+
+
+  it('renders driver availability as an accessible guarded toggle', () => {
+    auth.setSession({ id: 'driver-1', role: 'driver', token: 'jwt-token' });
+
+    const html = renderRoute('/driver');
+
+    expect(html).toContain('aria-pressed="false"');
+    expect(html).toContain('aria-busy="false"');
+    expect(html).toContain('Start broadcast');
+  });
+
+  it('renders rider coordinate inputs with stable accessible help text', () => {
+    auth.setSession({ id: 'rider-1', role: 'rider', token: 'jwt-token' });
+
+    const html = renderRoute('/rider');
+
+    expect(html).toContain('id="coordinate-format-hint"');
+    expect(html).toContain('aria-describedby="coordinate-format-hint pickup-lat-help"');
+    expect(html).toContain('id="pickup-lat-help"');
+    expect(html).toContain('Pickup latitude must be between -90 and 90.');
+  });
+
+  it('renders rating stars as a labelled keyboard-friendly radiogroup', () => {
+    const html = renderToStaticMarkup(
+      <RatingDialog tripId="trip-123456789" onSubmit={async () => undefined} onDismiss={() => undefined} />,
+    );
+
+    expect(html).toContain('role="radiogroup"');
+    expect(html).toContain('aria-describedby="rating-help"');
+    expect(html).toContain('Use arrow keys, Home, or End');
+    expect(html).toContain('role="radio"');
+    expect(html).toContain('aria-label="5 stars"');
+    expect(html).toContain('tabindex="0"');
   });
 
   it('renders a useful not-found route', () => {

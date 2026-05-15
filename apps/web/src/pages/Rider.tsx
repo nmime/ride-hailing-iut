@@ -227,6 +227,12 @@ export default function RiderPage() {
   const dropoffLatValid = validLat(dropoffLat);
   const dropoffLonValid = validLon(dropoffLon);
   const coordinatesValid = pickupLatValid && pickupLonValid && dropoffLatValid && dropoffLonValid;
+  const coordinateHintId = 'coordinate-format-hint';
+  const coordinateErrorId = 'coordinate-error';
+  const pickupLatDescription = `${coordinateHintId} pickup-lat-help${pickupLatValid ? '' : ` ${coordinateErrorId} pickup-lat-error`}`;
+  const pickupLonDescription = `${coordinateHintId} pickup-lon-help${pickupLonValid ? '' : ` ${coordinateErrorId} pickup-lon-error`}`;
+  const dropoffLatDescription = `${coordinateHintId} dropoff-lat-help${dropoffLatValid ? '' : ` ${coordinateErrorId} dropoff-lat-error`}`;
+  const dropoffLonDescription = `${coordinateHintId} dropoff-lon-help${dropoffLonValid ? '' : ` ${coordinateErrorId} dropoff-lon-error`}`;
   const liveDriverCopy = activeDriverId
     ? driverLocation
       ? `${lastSeenText(driverLocation.ts)} at ${driverLocation.lat.toFixed(5)}, ${driverLocation.lon.toFixed(5)}.`
@@ -343,11 +349,29 @@ export default function RiderPage() {
                   <div className="coordinate-fields">
                     <label className={pickupLatValid ? undefined : 'invalid'} htmlFor="pickup-lat">
                       Latitude
-                      <input id="pickup-lat" value={pickupLat} inputMode="decimal" onChange={(event) => setPickupLat(event.target.value)} aria-invalid={!pickupLatValid} />
+                      <input
+                        id="pickup-lat"
+                        value={pickupLat}
+                        inputMode="decimal"
+                        onChange={(event) => setPickupLat(event.target.value)}
+                        aria-invalid={!pickupLatValid}
+                        aria-describedby={pickupLatDescription}
+                      />
+                      <span id="pickup-lat-help" className="visually-hidden">Pickup latitude must be between -90 and 90.</span>
+                      {!pickupLatValid && <span id="pickup-lat-error" className="visually-hidden">Enter a pickup latitude from -90 to 90.</span>}
                     </label>
                     <label className={pickupLonValid ? undefined : 'invalid'} htmlFor="pickup-lon">
                       Longitude
-                      <input id="pickup-lon" value={pickupLon} inputMode="decimal" onChange={(event) => setPickupLon(event.target.value)} aria-invalid={!pickupLonValid} />
+                      <input
+                        id="pickup-lon"
+                        value={pickupLon}
+                        inputMode="decimal"
+                        onChange={(event) => setPickupLon(event.target.value)}
+                        aria-invalid={!pickupLonValid}
+                        aria-describedby={pickupLonDescription}
+                      />
+                      <span id="pickup-lon-help" className="visually-hidden">Pickup longitude must be between -180 and 180.</span>
+                      {!pickupLonValid && <span id="pickup-lon-error" className="visually-hidden">Enter a pickup longitude from -180 to 180.</span>}
                     </label>
                   </div>
                   <span className="coordinate-summary">{pickup[0].toFixed(4)}, {pickup[1].toFixed(4)}</span>
@@ -364,18 +388,37 @@ export default function RiderPage() {
                   <div className="coordinate-fields">
                     <label className={dropoffLatValid ? undefined : 'invalid'} htmlFor="dropoff-lat">
                       Latitude
-                      <input id="dropoff-lat" value={dropoffLat} inputMode="decimal" onChange={(event) => setDropoffLat(event.target.value)} aria-invalid={!dropoffLatValid} />
+                      <input
+                        id="dropoff-lat"
+                        value={dropoffLat}
+                        inputMode="decimal"
+                        onChange={(event) => setDropoffLat(event.target.value)}
+                        aria-invalid={!dropoffLatValid}
+                        aria-describedby={dropoffLatDescription}
+                      />
+                      <span id="dropoff-lat-help" className="visually-hidden">Dropoff latitude must be between -90 and 90.</span>
+                      {!dropoffLatValid && <span id="dropoff-lat-error" className="visually-hidden">Enter a dropoff latitude from -90 to 90.</span>}
                     </label>
                     <label className={dropoffLonValid ? undefined : 'invalid'} htmlFor="dropoff-lon">
                       Longitude
-                      <input id="dropoff-lon" value={dropoffLon} inputMode="decimal" onChange={(event) => setDropoffLon(event.target.value)} aria-invalid={!dropoffLonValid} />
+                      <input
+                        id="dropoff-lon"
+                        value={dropoffLon}
+                        inputMode="decimal"
+                        onChange={(event) => setDropoffLon(event.target.value)}
+                        aria-invalid={!dropoffLonValid}
+                        aria-describedby={dropoffLonDescription}
+                      />
+                      <span id="dropoff-lon-help" className="visually-hidden">Dropoff longitude must be between -180 and 180.</span>
+                      {!dropoffLonValid && <span id="dropoff-lon-error" className="visually-hidden">Enter a dropoff longitude from -180 to 180.</span>}
                     </label>
                   </div>
                   <span className="coordinate-summary">{dropoff[0].toFixed(4)}, {dropoff[1].toFixed(4)}</span>
                 </section>
               </div>
+              <p id={coordinateHintId} className="form-hint">Use WGS-84 coordinates: latitude −90..90, longitude −180..180.</p>
               {!coordinatesValid && (
-                <p className="form-hint warning">Use WGS-84 coordinates: latitude −90..90, longitude −180..180.</p>
+                <p id={coordinateErrorId} className="form-hint warning">Fix highlighted coordinates before requesting a ride or checking coverage.</p>
               )}
               <div className="button-row trip-actions">
                 <button className="btn primary" onClick={requestRide} disabled={!!tripId || requesting || !coordinatesValid} aria-busy={requesting}>

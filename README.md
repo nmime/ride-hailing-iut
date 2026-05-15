@@ -20,7 +20,7 @@ two API styles (REST + WebSocket), and an Nginx gateway with two backend replica
 | Relational store | Postgres 16 with PostGIS |
 | Polyglot store(s) | Redis (live driver index, surge cache), PostGIS (spatial queries) |
 | Stream | Redpanda (Kafka-API compatible) for `driver.location` and `trip.events` topics |
-| REST API | NestJS + Fastify, OpenAPI / Swagger UI at `/docs` |
+| REST API | NestJS + Fastify, OpenAPI / Swagger UI at `/api/docs` through the gateway (`/docs` on the API service) |
 | Non-REST API | WebSocket (Socket.IO) for live trip updates, matched-driver tracking, geographic surge feed |
 | Gateway / LB | Nginx with two `api` replicas |
 | Batch pipeline | Nightly trip-aggregate job (cron + Node task runner) |
@@ -38,7 +38,7 @@ docker compose up -d --build
 docker compose exec api node dist/scripts/migrate.js
 docker compose exec api node dist/scripts/seed.js
 open http://localhost            # gateway → web app
-open http://localhost/api/docs   # Swagger UI
+open http://localhost/api/docs   # Swagger UI through the gateway
 open http://localhost:3001       # Grafana (admin / admin)
 ```
 
@@ -72,6 +72,10 @@ Seeded app users all use `RIDEX_SEED_PASSWORD` (default `ChangeMe123!`):
 
 The whole stack boots behind a single public port (`80`/`443`). All stateful services use named
 volumes so data survives `docker compose down`.
+
+## Validation snapshot
+
+The workspace currently defines 36 focused automated checks across the web app, API DTO validation, consistent-hash ring, and rate-limiter packages. Run `pnpm test` from the repository root after installing dependencies.
 
 ## Smoke test
 
