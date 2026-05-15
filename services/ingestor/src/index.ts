@@ -102,20 +102,31 @@ app.post('/v1/locations', async (req, reply) => {
   if (!Number.isFinite(ts)) return reply.code(400).send({ error: 'invalid timestamp' });
   const observedAt = new Date(ts);
 
+  let indexAsOnline = false;
   const client = await pg.connect();
   try {
     await client.query('BEGIN');
-    const driver = await client.query(
-      `UPDATE drivers
-          SET status = 'online'
-        WHERE user_id = $1
-          AND status <> 'suspended'
-        RETURNING user_id`,
+    const driver = await client.query<{ status: string; has_active_trip: boolean }>(
+      `SELECT d.status::text AS status,
+              EXISTS (
+                SELECT 1 FROM trips t
+                 WHERE t.driver_id = d.user_id
+                   AND t.status IN ('matched', 'in_progress')
+              ) AS has_active_trip
+         FROM drivers d
+        WHERE d.user_id = $1
+          AND d.status <> 'suspended'
+        FOR UPDATE`,
       [body.driver_id],
     );
     if (driver.rowCount === 0) {
       await client.query('ROLLBACK');
       return reply.code(404).send({ error: 'driver not found' });
+    }
+
+    indexAsOnline = driver.rows[0].status !== 'on_trip' && !driver.rows[0].has_active_trip;
+    if (indexAsOnline) {
+      await client.query(`UPDATE drivers SET status = 'online' WHERE user_id = $1`, [body.driver_id]);
     }
 
     await client.query(
@@ -149,9 +160,13 @@ app.post('/v1/locations', async (req, reply) => {
     client.release();
   }
 
-  // Update the Redis GEO index. `geoadd` returns 0 when the key already
-  // exists for this member (the position is updated in place).
-  await redis.geoadd('driver:online', body.lon, body.lat, body.driver_id);
+  // Keep accepting/storing pings from busy drivers, but never leave them in
+  // the matchable Redis GEO set while they are on an active trip.
+  if (indexAsOnline) {
+    await redis.geoadd('driver:online', body.lon, body.lat, body.driver_id);
+  } else {
+    await redis.zrem('driver:online', body.driver_id);
+  }
 
   // Publish to Kafka. Key by driver_id so consumers in the same group
   // see a stable per-driver partition.

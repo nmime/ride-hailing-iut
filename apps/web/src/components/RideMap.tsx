@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet';
+import { MapContainer, Marker, Popup, TileLayer, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 export type LatLon = [number, number];
@@ -34,6 +34,35 @@ declare global {
 
 const YANDEX_SCRIPT_ID = 'ridex-yandex-maps-api';
 let yandexMapsPromise: Promise<YandexMapsApi> | null = null;
+
+
+const MAP_LEGEND: Array<{ tone: RideMapMarkerTone; label: string }> = [
+  { tone: 'pickup', label: 'Pickup' },
+  { tone: 'dropoff', label: 'Dropoff' },
+  { tone: 'driver', label: 'Driver' },
+  { tone: 'nearby', label: 'Nearby' },
+];
+
+function toneLabel(tone: RideMapMarkerTone | undefined) {
+  return MAP_LEGEND.find((item) => item.tone === (tone ?? 'nearby'))?.label ?? 'Marker';
+}
+
+function coordinateText(position: LatLon) {
+  return `${position[0].toFixed(5)}, ${position[1].toFixed(5)}`;
+}
+
+function MapLegend() {
+  return (
+    <div className="map-legend" aria-label="Map marker legend">
+      {MAP_LEGEND.map((item) => (
+        <span key={item.tone}>
+          <i className={`map-legend-dot map-legend-${item.tone}`} aria-hidden="true" />
+          {item.label}
+        </span>
+      ))}
+    </div>
+  );
+}
 
 function env(name: string) {
   return String(import.meta.env[name] ?? '').trim();
@@ -170,10 +199,25 @@ function LeafletRideMap({ center, markers, zoom }: RideMapProps) {
           url={import.meta.env.VITE_MAP_TILE_URL ?? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
         />
         {markers.map((marker) => (
-          <Marker key={marker.id} position={marker.position} icon={leafletIconFor(marker.tone)} />
+          <Marker key={marker.id} position={marker.position} icon={leafletIconFor(marker.tone)}>
+            <Tooltip
+              permanent
+              direction="top"
+              offset={[0, -12]}
+              className={`leaflet-label leaflet-label-${marker.tone ?? 'nearby'}`}
+            >
+              {marker.label}
+            </Tooltip>
+            <Popup>
+              <strong>{marker.label}</strong>
+              <span className="popup-kicker">{toneLabel(marker.tone)}</span>
+              <span>{coordinateText(marker.position)}</span>
+            </Popup>
+          </Marker>
         ))}
       </MapContainer>
       <span className="map-provider-badge">OpenStreetMap</span>
+      <MapLegend />
     </>
   );
 }
