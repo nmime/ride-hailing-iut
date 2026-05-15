@@ -173,4 +173,6 @@ full call graph for a failed request.
 
 The matcher then pushes a `trip.matched` event over the WebSocket gateway
 within ~1–2 s; clients receive it in the `trip:event` channel after
-`trip:subscribe(<id>)`.
+`trip:subscribe(<id>)`. Once a matched trip has a `driver_id`, the rider
+client also calls `driver:subscribe(<driver_id>)` and consumes `driver:location`
+events to move the matched-driver pin on the map.

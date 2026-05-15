@@ -4,11 +4,12 @@ import { AuthGate } from '../components/AuthGate';
 import { hasYandexMapsKey, RideMap, RideMapMarker } from '../components/RideMap';
 import { RatingDialog } from '../components/RatingDialog';
 import { TripHistory } from '../components/TripHistory';
-import { useTripSocket } from '../hooks/useTripSocket';
+import { useTripSocket, type TripSocketEvent } from '../hooks/useTripSocket';
 import { useToast } from '../hooks/useToast';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const TASHKENT: [number, number] = [41.311, 69.279];
+const TERMINAL_STATUSES = new Set(['completed', 'cancelled_by_rider', 'cancelled_by_driver', 'expired']);
 
 function toCoordinate(value: string, fallback: number) {
   const trimmed = value.trim();
@@ -40,8 +41,32 @@ function estimatedDistanceKm(pickup: [number, number], dropoff: [number, number]
   return Math.max(0.1, Math.hypot(latKm, lonKm));
 }
 
-function eventLabel(event: any) {
+function eventLabel(event: TripSocketEvent | null | undefined) {
   return String(event?.type ?? event?.event ?? event?.status ?? 'trip:event');
+}
+
+function eventType(event: TripSocketEvent) {
+  return String(event.type ?? event.event ?? event.status ?? '');
+}
+
+function isTerminalTrip(status?: string | null) {
+  return !!status && TERMINAL_STATUSES.has(status);
+}
+
+function driverIdFromEvent(event: TripSocketEvent) {
+  return typeof event.driver_id === 'string' && event.driver_id.length > 0 ? event.driver_id : null;
+}
+
+function mergeActiveTrip(
+  previous: TripSummary | null,
+  tripId: string | null,
+  next: Partial<TripSummary>,
+): TripSummary | null {
+  if (!previous && !tripId) return null;
+  return {
+    ...(previous ?? { id: tripId!, status: 'requested', requested_at: new Date().toISOString() }),
+    ...next,
+  };
 }
 
 function yandexRouteUrl(pickup: [number, number], dropoff: [number, number]) {
@@ -60,12 +85,19 @@ function yandexPointUrl(position: [number, number], zoom = 16) {
   return `https://yandex.com/maps/?${params.toString()}`;
 }
 
+function lastSeenText(ts?: number) {
+  if (!ts) return 'Live location received';
+  const observed = new Date(ts);
+  return Number.isNaN(observed.getTime()) ? 'Live location received' : `Last seen ${observed.toLocaleTimeString()}`;
+}
+
 const STORAGE_TRIP_ID = 'ridex_active_trip_id';
 
 export default function RiderPage() {
   const [tripId, setTripId] = useState<string | null>(() => {
     try { return localStorage.getItem(STORAGE_TRIP_ID); } catch { return null; }
   });
+  const [activeTrip, setActiveTrip] = useState<TripSummary | null>(null);
   const [pickupLat, setPickupLat] = useState('41.311');
   const [pickupLon, setPickupLon] = useState('69.279');
   const [dropoffLat, setDropoffLat] = useState('41.330');
@@ -76,7 +108,8 @@ export default function RiderPage() {
   const [nearbyDrivers, setNearbyDrivers] = useState<NearbyDriver[] | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
   const [pendingRating, setPendingRating] = useState<TripSummary | null>(null);
-  const { events } = useTripSocket(tripId);
+  const activeDriverId = activeTrip?.driver_id ?? null;
+  const { events, driverLocation } = useTripSocket(tripId, activeDriverId);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -86,13 +119,43 @@ export default function RiderPage() {
     } catch { /* storage unavailable */ }
   }, [tripId]);
 
+  useEffect(() => {
+    if (!tripId) {
+      setActiveTrip(null);
+      return;
+    }
+    let cancelled = false;
+    async function restore() {
+      try {
+        const trip = await api.getTrip(tripId!);
+        if (cancelled) return;
+        if (isTerminalTrip(trip.status)) {
+          setActiveTrip(null);
+          setTripId(null);
+          setHistoryKey((k) => k + 1);
+        } else {
+          setActiveTrip(trip);
+          setErr(null);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setActiveTrip(null);
+          setErr(`Could not restore active trip: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+    }
+    void restore();
+    return () => { cancelled = true; };
+  }, [tripId]);
+
   const handledEvents = useRef(0);
   useEffect(() => {
     if (events.length <= handledEvents.current) return;
     const newOnes = events.slice(handledEvents.current);
     handledEvents.current = events.length;
     for (const evt of newOnes) {
-      const type = String(evt?.type ?? evt?.event ?? '');
+      const type = eventType(evt);
+      const eventDriverId = driverIdFromEvent(evt);
       if (type.includes('completed')) {
         toast('Trip completed — rate your driver', 'success');
         const id = tripId;
@@ -101,15 +164,24 @@ export default function RiderPage() {
             .then((trip) => setPendingRating(trip))
             .catch(() => { /* user can rate from history */ });
         }
+        setActiveTrip(null);
         setTripId(null);
         setHistoryKey((k) => k + 1);
-      } else if (type.includes('cancelled')) {
+      } else if (type.includes('cancelled') || type.includes('expired')) {
         toast('Trip cancelled', 'info');
+        setActiveTrip(null);
         setTripId(null);
         setHistoryKey((k) => k + 1);
-      } else if (type.includes('matched')) {
+      } else if (type.includes('matched') || type.includes('accepted')) {
+        setActiveTrip((trip) => mergeActiveTrip(trip, tripId, {
+          status: type.includes('accepted') ? 'accepted' : 'matched',
+          ...(eventDriverId ? { driver_id: eventDriverId } : {}),
+        }));
+        if (tripId) api.getTrip(tripId).then(setActiveTrip).catch(() => { /* event already updated visible state */ });
         toast('Driver matched', 'success');
-      } else if (type.includes('started')) {
+      } else if (type.includes('started') || type.includes('in_progress')) {
+        setActiveTrip((trip) => mergeActiveTrip(trip, tripId, { status: 'in_progress' }));
+        if (tripId) api.getTrip(tripId).then(setActiveTrip).catch(() => { /* event already updated visible state */ });
         toast('Trip started', 'info');
       }
     }
@@ -142,13 +214,24 @@ export default function RiderPage() {
       position: [driver.lat, driver.lon] as [number, number],
       tone: 'nearby' as const,
     })),
-  ], [mapPickup, mapDropoff, nearbyDrivers]);
+    ...(driverLocation ? [{
+      id: `matched-${driverLocation.driver_id}`,
+      label: `Matched driver ${driverLocation.driver_id.slice(0, 4)}`,
+      position: [driverLocation.lat, driverLocation.lon] as [number, number],
+      tone: 'driver' as const,
+    }] : []),
+  ], [mapPickup, mapDropoff, nearbyDrivers, driverLocation]);
   const routeUrl = useMemo(() => yandexRouteUrl(pickup, dropoff), [pickup, dropoff]);
   const pickupLatValid = validLat(pickupLat);
   const pickupLonValid = validLon(pickupLon);
   const dropoffLatValid = validLat(dropoffLat);
   const dropoffLonValid = validLon(dropoffLon);
   const coordinatesValid = pickupLatValid && pickupLonValid && dropoffLatValid && dropoffLonValid;
+  const liveDriverCopy = activeDriverId
+    ? driverLocation
+      ? `${lastSeenText(driverLocation.ts)} at ${driverLocation.lat.toFixed(5)}, ${driverLocation.lon.toFixed(5)}.`
+      : 'Matched driver assigned. Waiting for the next live location ping.'
+    : 'Live driver tracking starts as soon as a driver is matched.';
 
   function fillDemoRoute() {
     setPickupLat('41.311');
@@ -173,6 +256,7 @@ export default function RiderPage() {
         pickup_address: 'Amir Temur Square',
         dropoff_address: 'Inha University in Tashkent',
       });
+      setActiveTrip(trip);
       setTripId(trip.id);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -204,6 +288,7 @@ export default function RiderPage() {
     try {
       await api.cancelTrip(tripId);
       toast('Trip cancelled', 'info');
+      setActiveTrip(null);
       setTripId(null);
       setHistoryKey((k) => k + 1);
     } catch (e) {
@@ -226,7 +311,7 @@ export default function RiderPage() {
           <div>
             <p className="eyebrow">Rider console</p>
             <h1>Book a ride in Tashkent</h1>
-            <p>Set pickup and dropoff coordinates, check live driver coverage, and subscribe to trip updates.</p>
+            <p>Set pickup and dropoff coordinates, check live driver coverage, track the matched driver, and subscribe to trip updates.</p>
           </div>
           <div className="status-tile">
             <span>Route estimate</span>
@@ -331,7 +416,7 @@ export default function RiderPage() {
             <div className="card stack">
               <div className="card-heading">
                 <h2>Live status</h2>
-                <span className={latestEvent ? 'pill success' : 'pill'}>{latestEvent ? eventLabel(latestEvent) : 'Waiting'}</span>
+                <span className={latestEvent ? 'pill success' : 'pill'}>{latestEvent ? eventLabel(latestEvent) : activeTrip?.status ?? 'Waiting'}</span>
               </div>
               <div className="metric-grid">
                 <div>
@@ -339,14 +424,19 @@ export default function RiderPage() {
                   <strong>{tripId ? tripId.slice(0, 8) : 'None'}</strong>
                 </div>
                 <div>
-                  <span>Driver coverage</span>
-                  <strong>{nearbyDrivers === null ? 'Unchecked' : nearbyDrivers.length}</strong>
+                  <span>Matched driver</span>
+                  <strong>{activeDriverId ? activeDriverId.slice(0, 8) : 'Waiting'}</strong>
+                </div>
+                <div>
+                  <span>Driver pin</span>
+                  <strong>{driverLocation ? 'Live' : activeDriverId ? 'Subscribed' : 'Pending'}</strong>
                 </div>
                 <div>
                   <span>Events</span>
                   <strong>{events.length}</strong>
                 </div>
               </div>
+              <p className="muted">{liveDriverCopy}</p>
               {nearbyDrivers !== null && (
                 <p className="muted">
                   {nearbyDrivers.length > 0

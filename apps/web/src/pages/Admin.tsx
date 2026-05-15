@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from '../api/client';
+import { api, type DailyDriverReport, type SurgeZone } from '../api/client';
 import { AuthGate } from '../components/AuthGate';
 
 export default function AdminPage() {
@@ -10,9 +10,19 @@ export default function AdminPage() {
   );
 }
 
+function toNumber(value: number | string | null | undefined) {
+  const next = Number(value ?? 0);
+  return Number.isFinite(next) ? next : 0;
+}
+
+function formatDay(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString();
+}
+
 function AdminContent() {
-  const [daily, setDaily] = useState<any[]>([]);
-  const [surge, setSurge] = useState<any[]>([]);
+  const [daily, setDaily] = useState<DailyDriverReport[]>([]);
+  const [surge, setSurge] = useState<SurgeZone[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,9 +32,9 @@ function AdminContent() {
 
   const totals = useMemo(() => daily.reduce(
     (acc, item) => ({
-      trips: acc.trips + Number(item.trips ?? 0),
-      km: acc.km + Number(item.total_km ?? 0),
-      revenue: acc.revenue + Number(item.gross_revenue ?? 0),
+      trips: acc.trips + toNumber(item.trips),
+      km: acc.km + toNumber(item.total_km),
+      revenue: acc.revenue + toNumber(item.gross_revenue),
     }),
     { trips: 0, km: 0, revenue: 0 },
   ), [daily]);
@@ -92,7 +102,7 @@ function AdminContent() {
                 ) : surge.length === 0 ? (
                   <tr><td colSpan={2}>No surge zones returned.</td></tr>
                 ) : surge.map((z) => (
-                  <tr key={z.id}><td>{z.name}</td><td>{Number(z.base_multiplier).toFixed(2)}x</td></tr>
+                  <tr key={z.id}><td>{z.name}</td><td>{toNumber(z.base_multiplier).toFixed(2)}x</td></tr>
                 ))}
               </tbody>
             </table>
@@ -113,12 +123,12 @@ function AdminContent() {
                 ) : daily.length === 0 ? (
                   <tr><td colSpan={5}>No daily rows returned.</td></tr>
                 ) : daily.map((d, i) => (
-                  <tr key={`${d.driver_id}-${d.day}-${i}`}>
-                    <td>{String(d.driver_id).slice(0, 8)}</td>
-                    <td>{new Date(d.day).toLocaleDateString()}</td>
-                    <td className="numeric">{d.trips}</td>
-                    <td className="numeric">{Number(d.total_km).toFixed(1)}</td>
-                    <td className="numeric">${Number(d.gross_revenue).toFixed(2)}</td>
+                  <tr key={`${d.driver_id ?? 'unknown'}-${d.day}-${i}`}>
+                    <td>{(d.driver_id ?? '—').slice(0, 8)}</td>
+                    <td>{formatDay(d.day)}</td>
+                    <td className="numeric">{toNumber(d.trips)}</td>
+                    <td className="numeric">{toNumber(d.total_km).toFixed(1)}</td>
+                    <td className="numeric">${toNumber(d.gross_revenue).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

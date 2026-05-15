@@ -78,6 +78,22 @@ export interface RateTripBody {
   comment?: string;
 }
 
+export interface DailyDriverReport {
+  driver_id: string | null;
+  day: string;
+  trips: number | string;
+  total_km: number | string;
+  total_minutes?: number | string;
+  gross_revenue: number | string;
+}
+
+export interface SurgeZone {
+  id: string;
+  name: string;
+  base_multiplier: number | string;
+  polygon_geo?: string | null;
+}
+
 export interface CompletedFare {
   id: string;
   distance_km: number | string;
@@ -226,6 +242,6 @@ export const api = {
   },
 
   // admin
-  daily:   () => req<any[]>('/admin/reports/daily'),
-  surge:   () => req<any[]>('/admin/surge'),
+  daily:   () => req<DailyDriverReport[]>('/admin/reports/daily'),
+  surge:   () => req<SurgeZone[]>('/admin/surge'),
 };
