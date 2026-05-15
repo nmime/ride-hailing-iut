@@ -131,6 +131,10 @@ export function VehiclesPanel() {
 
       {showForm ? (
         <form className="vehicle-form stack" onSubmit={submit}>
+          <p className="muted">
+            Your first vehicle becomes active automatically. Additional vehicles are saved inactive
+            until you choose “Make active”.
+          </p>
           <div className="grid-2">
             <label>Plate
               <input
