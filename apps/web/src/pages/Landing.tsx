@@ -32,7 +32,7 @@ const systemFlow = [
 const platformStats = [
   { label: 'API replicas', value: '2x', tone: 'primary' },
   { label: 'Stores', value: 'PG + Redis + Redpanda', tone: 'accent' },
-  { label: 'Tests', value: '30 passing', tone: 'violet' },
+  { label: 'Tests', value: '36 checks', tone: 'violet' },
 ];
 
 const journeySteps = [

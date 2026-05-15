@@ -29,11 +29,13 @@ export default function DriverPage() {
   const [pos, setPos] = useState<[number, number]>([41.311, 69.279]);
   const [err, setErr] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+  const [statusPending, setStatusPending] = useState(false);
   const [lastSentAt, setLastSentAt] = useState<Date | null>(null);
   const [pingsSent, setPingsSent] = useState(0);
   const [latText, setLatText] = useState(() => '41.311000');
   const [lonText, setLonText] = useState(() => '69.279000');
   const posRef = useRef<[number, number]>(pos);
+  const statusPendingRef = useRef(false);
   const watchId = useRef<number | null>(null);
   const { toast } = useToast();
 
@@ -90,9 +92,12 @@ export default function DriverPage() {
   }, [online]);
 
   async function toggleOnline() {
+    if (statusPendingRef.current) return;
     const session = auth.getSession();
     if (!session) return;
     const next = !online;
+    statusPendingRef.current = true;
+    setStatusPending(true);
     setErr(null);
     try {
       await api.setDriverStatus(session.id, next ? 'online' : 'offline');
@@ -100,6 +105,9 @@ export default function DriverPage() {
       toast(next ? 'You are online' : 'You are offline', next ? 'success' : 'info');
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      statusPendingRef.current = false;
+      setStatusPending(false);
     }
   }
 
@@ -128,7 +136,14 @@ export default function DriverPage() {
               <strong>{online ? 'Online and broadcasting' : 'Offline standby'}</strong>
               <p>{lastSentAt ? `Last ingest ${lastSentAt.toLocaleTimeString()}` : 'Location has not been sent yet.'}</p>
             </div>
-            <button className={online ? 'btn danger' : 'btn primary'} onClick={toggleOnline}>
+            <button
+              type="button"
+              className={online ? 'btn danger' : 'btn primary'}
+              onClick={toggleOnline}
+              aria-pressed={online}
+              aria-busy={statusPending}
+              disabled={statusPending}
+            >
               {online ? 'Stop broadcast' : 'Start broadcast'}
             </button>
           </div>
