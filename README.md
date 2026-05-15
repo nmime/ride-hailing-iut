@@ -21,7 +21,7 @@ two API styles (REST + WebSocket), and an Nginx gateway with two backend replica
 | Polyglot store(s) | Redis (live driver index, surge cache), PostGIS (spatial queries) |
 | Stream | Redpanda (Kafka-API compatible) for `driver.location` and `trip.events` topics |
 | REST API | NestJS + Fastify, OpenAPI / Swagger UI at `/docs` |
-| Non-REST API | WebSocket (Socket.IO) for live trip updates, geographic surge feed |
+| Non-REST API | WebSocket (Socket.IO) for live trip updates, matched-driver tracking, geographic surge feed |
 | Gateway / LB | Nginx with two `api` replicas |
 | Batch pipeline | Nightly trip-aggregate job (cron + Node task runner) |
 | Stream pipeline | Surge multiplier computed off the location stream |
@@ -87,7 +87,8 @@ bash scripts/smoke.sh http://localhost
 
 The smoke script checks gateway health, API readiness (`/api/readyz`), Swagger reachability,
 seeded-user login, driver location ingest, matching, trip start/complete, rider rating, and
-admin reports.
+admin reports. After a match, the rider UI subscribes to the matched driver and renders live
+`driver:location` pins when pings arrive.
 
 ## Repository layout
 

@@ -26,7 +26,8 @@ vi.mock('socket.io-client', () => ({
 }));
 
 import App from './App';
-import { api, auth, AuthSession } from './api/client';
+import { api, auth, type AuthSession } from './api/client';
+import { isDriverLocationEvent } from './hooks/useTripSocket';
 
 function installLocalStorage() {
   const store = new Map<string, string>();
@@ -107,6 +108,7 @@ describe('RideX web app shell', () => {
     expect(html).toContain('Yandex cards');
     expect(html).toContain('Yandex route');
     expect(html).toContain('Check coverage');
+    expect(html).toContain('Live driver tracking starts as soon as a driver is matched.');
   });
 });
 
@@ -221,5 +223,46 @@ describe('RideX web API client', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/vehicles', expect.objectContaining({
       headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
     }));
+  });
+
+  it('reads typed admin report and surge endpoints', async () => {
+    auth.setSession({ id: 'admin-1', role: 'admin', token: 'jwt-token' });
+    const fetchMock = vi.fn<[input: RequestInfo | URL, init?: RequestInit], Promise<Response>>(
+      async (input) => {
+        if (String(input) === '/api/admin/reports/daily') {
+          return jsonResponse([
+            { driver_id: 'driver-1', day: '2026-04-28T00:00:00.000Z', trips: '3', total_km: '12.5', total_minutes: '31.2', gross_revenue: '25.75' },
+          ]);
+        }
+        if (String(input) === '/api/admin/surge') {
+          return jsonResponse([
+            { id: 'zone-1', name: 'Central', base_multiplier: '1.25', polygon_geo: null },
+          ]);
+        }
+        return jsonResponse({ error: 'unexpected endpoint' }, { status: 404 });
+      },
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const daily = await api.daily();
+    const surge = await api.surge();
+
+    expect(daily[0].gross_revenue).toBe('25.75');
+    expect(surge[0].base_multiplier).toBe('1.25');
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/reports/daily', expect.objectContaining({
+      headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
+    }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/surge', expect.objectContaining({
+      headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
+    }));
+  });
+});
+
+describe('RideX websocket payload guards', () => {
+  it('accepts only valid driver location payloads for live rider tracking', () => {
+    expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 41.311, lon: 69.279, ts: 1777370400000 })).toBe(true);
+    expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 141.311, lon: 69.279 })).toBe(false);
+    expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 41.311, lon: '69.279' })).toBe(false);
+    expect(isDriverLocationEvent({ lat: 41.311, lon: 69.279 })).toBe(false);
   });
 });
