@@ -28,6 +28,17 @@ login() {
 echo "-- gateway healthz"
 curl -fsS "$BASE/healthz" | grep -q '"status":"ok"'
 
+echo "-- API readiness"
+READY=""
+for _ in $(seq 1 30); do
+  if curl -fsS "$BASE/api/readyz" | grep -q '"status":"ok"'; then
+    READY=ok
+    break
+  fi
+  sleep 2
+done
+test "$READY" = "ok"
+
 echo "-- swagger UI reachable"
 curl -fsS -o /dev/null -w "%{http_code}\n" "$BASE/api/docs" | grep -E "^(200|301|302)$"
 
@@ -77,6 +88,13 @@ curl -fsS -X POST "$BASE/api/trips/$TRIP_ID/start" \
 curl -fsS -X POST "$BASE/api/trips/$TRIP_ID/complete" \
   -H "authorization: Bearer $DRIVER_TOKEN" \
   | grep -q '"status":"completed"'
+
+echo "-- rider rates completed trip"
+curl -fsS -X POST "$BASE/api/trips/$TRIP_ID/rating" \
+  -H "authorization: Bearer $RIDER_TOKEN" \
+  -H 'content-type: application/json' \
+  -d '{"rating":5,"comment":"Smoke test ride"}' \
+  | grep -q '"rating":5'
 
 echo "-- admin reports reachable"
 curl -fsS "$BASE/api/admin/reports/daily" \
