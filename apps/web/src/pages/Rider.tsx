@@ -144,9 +144,20 @@ export default function RiderPage() {
     })),
   ], [mapPickup, mapDropoff, nearbyDrivers]);
   const routeUrl = useMemo(() => yandexRouteUrl(pickup, dropoff), [pickup, dropoff]);
-  const coordinatesValid =
-    validLat(pickupLat) && validLon(pickupLon) &&
-    validLat(dropoffLat) && validLon(dropoffLon);
+  const pickupLatValid = validLat(pickupLat);
+  const pickupLonValid = validLon(pickupLon);
+  const dropoffLatValid = validLat(dropoffLat);
+  const dropoffLonValid = validLon(dropoffLon);
+  const coordinatesValid = pickupLatValid && pickupLonValid && dropoffLatValid && dropoffLonValid;
+
+  function fillDemoRoute() {
+    setPickupLat('41.311');
+    setPickupLon('69.279');
+    setDropoffLat('41.330');
+    setDropoffLon('69.250');
+    setNearbyDrivers(null);
+    setErr(null);
+  }
 
   async function requestRide() {
     if (!coordinatesValid) {
@@ -227,26 +238,69 @@ export default function RiderPage() {
 
         <section className="workflow-grid">
           <div className="stack">
-            <div className="card stack">
+            <div className="card stack trip-request-card">
               <div className="card-heading">
-                <h2>Trip request</h2>
+                <div>
+                  <p className="eyebrow">Route builder</p>
+                  <h2>Trip request</h2>
+                </div>
                 {tripId && <span className="pill success">Active trip</span>}
               </div>
-              <div className="grid-4">
-                <label htmlFor="pickup-lat">Pickup lat<input id="pickup-lat" value={pickupLat} inputMode="decimal" onChange={(event) => setPickupLat(event.target.value)} /></label>
-                <label htmlFor="pickup-lon">Pickup lon<input id="pickup-lon" value={pickupLon} inputMode="decimal" onChange={(event) => setPickupLon(event.target.value)} /></label>
-                <label htmlFor="dropoff-lat">Dropoff lat<input id="dropoff-lat" value={dropoffLat} inputMode="decimal" onChange={(event) => setDropoffLat(event.target.value)} /></label>
-                <label htmlFor="dropoff-lon">Dropoff lon<input id="dropoff-lon" value={dropoffLon} inputMode="decimal" onChange={(event) => setDropoffLon(event.target.value)} /></label>
+              <div className="coordinate-card-grid">
+                <section className="coordinate-card pickup" aria-labelledby="pickup-card-title">
+                  <div className="coordinate-card-head">
+                    <span className="coordinate-icon" aria-hidden="true">A</span>
+                    <div>
+                      <h3 id="pickup-card-title">Pickup point</h3>
+                      <p>Where the rider starts. Defaults to Amir Temur Square.</p>
+                    </div>
+                  </div>
+                  <div className="coordinate-fields">
+                    <label className={pickupLatValid ? undefined : 'invalid'} htmlFor="pickup-lat">
+                      Latitude
+                      <input id="pickup-lat" value={pickupLat} inputMode="decimal" onChange={(event) => setPickupLat(event.target.value)} aria-invalid={!pickupLatValid} />
+                    </label>
+                    <label className={pickupLonValid ? undefined : 'invalid'} htmlFor="pickup-lon">
+                      Longitude
+                      <input id="pickup-lon" value={pickupLon} inputMode="decimal" onChange={(event) => setPickupLon(event.target.value)} aria-invalid={!pickupLonValid} />
+                    </label>
+                  </div>
+                  <span className="coordinate-summary">{pickup[0].toFixed(4)}, {pickup[1].toFixed(4)}</span>
+                </section>
+
+                <section className="coordinate-card dropoff" aria-labelledby="dropoff-card-title">
+                  <div className="coordinate-card-head">
+                    <span className="coordinate-icon" aria-hidden="true">B</span>
+                    <div>
+                      <h3 id="dropoff-card-title">Dropoff point</h3>
+                      <p>Destination for the route estimate. Defaults to IUT.</p>
+                    </div>
+                  </div>
+                  <div className="coordinate-fields">
+                    <label className={dropoffLatValid ? undefined : 'invalid'} htmlFor="dropoff-lat">
+                      Latitude
+                      <input id="dropoff-lat" value={dropoffLat} inputMode="decimal" onChange={(event) => setDropoffLat(event.target.value)} aria-invalid={!dropoffLatValid} />
+                    </label>
+                    <label className={dropoffLonValid ? undefined : 'invalid'} htmlFor="dropoff-lon">
+                      Longitude
+                      <input id="dropoff-lon" value={dropoffLon} inputMode="decimal" onChange={(event) => setDropoffLon(event.target.value)} aria-invalid={!dropoffLonValid} />
+                    </label>
+                  </div>
+                  <span className="coordinate-summary">{dropoff[0].toFixed(4)}, {dropoff[1].toFixed(4)}</span>
+                </section>
               </div>
               {!coordinatesValid && (
                 <p className="form-hint warning">Use WGS-84 coordinates: latitude −90..90, longitude −180..180.</p>
               )}
-              <div className="button-row">
+              <div className="button-row trip-actions">
                 <button className="btn primary" onClick={requestRide} disabled={!!tripId || requesting || !coordinatesValid} aria-busy={requesting}>
                   {requesting ? 'Requesting...' : tripId ? `Trip ${tripId.slice(0, 8)}` : 'Request ride'}
                 </button>
-                <button className="btn secondary" onClick={checkCoverage} disabled={checkingCoverage || !validLat(pickupLat) || !validLon(pickupLon)} aria-busy={checkingCoverage}>
+                <button className="btn secondary" onClick={checkCoverage} disabled={checkingCoverage || !pickupLatValid || !pickupLonValid} aria-busy={checkingCoverage}>
                   {checkingCoverage ? 'Checking...' : 'Check coverage'}
+                </button>
+                <button className="btn ghost" type="button" onClick={fillDemoRoute} disabled={!!tripId}>
+                  Demo route
                 </button>
                 <a className="btn ghost" href={routeUrl} target="_blank" rel="noreferrer">Yandex route</a>
                 {tripId && <button className="btn ghost" onClick={cancelRide}>Cancel trip</button>}

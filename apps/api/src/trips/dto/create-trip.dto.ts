@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsLatitude, IsLongitude, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import { IsDefined, IsLatitude, IsLongitude, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
 
 export class GeoPointDto {
   @ApiProperty({ example: 41.311 })
@@ -14,11 +14,15 @@ export class GeoPointDto {
 
 export class CreateTripDto {
   @ApiProperty({ type: GeoPointDto })
+  @IsDefined()
+  @IsObject()
   @ValidateNested()
   @Type(() => GeoPointDto)
   pickup!: GeoPointDto;
 
   @ApiProperty({ type: GeoPointDto })
+  @IsDefined()
+  @IsObject()
   @ValidateNested()
   @Type(() => GeoPointDto)
   dropoff!: GeoPointDto;
