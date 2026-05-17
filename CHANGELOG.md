@@ -6,6 +6,17 @@ development window.
 ## [2026-05-17]
 
 - `65b6ab7` Marat - `feat(lib): implement token bucket rate limiter backends and tests`
+- `10542af` Nikita - `docs(submission): link team profiles and commit timeline`
+- `c9ec0e4` Nikita - `refactor(services): split worker entrypoints into modules`
+- `152a462` Marat - `chore(format): add workspace lint and prettier pass`
+- `2c8654b` Nikita - `refactor(shared): consolidate service runtime helpers`
+- `5dd8a4b` Nikita - `docs(submission): add final report pdf`
+- `9470087` Nikita - `refactor: standardize vehicle modules and service utilities`
+- `8f3dfb8` Nikita - `refactor(web): include vehicle UI test and panel refactors`
+- `f745ed4` Nikita - `chore: apply RideX demo auth patch`
+- `54f791d` Nikita - `fix(auth): enable secure demo login`
+- `7225076` Nikita - `chore: apply RideX hardening patch`
+- `79474f5` Nikita - `fix(auth): harden demo login and block grafana`
 
 ## [2026-05-16]
 
