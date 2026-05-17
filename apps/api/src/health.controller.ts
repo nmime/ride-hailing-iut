@@ -1,7 +1,10 @@
 import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import {
-  HealthCheck, HealthCheckError, HealthCheckService, HealthIndicatorResult,
+  HealthCheck,
+  HealthCheckError,
+  HealthCheckService,
+  HealthIndicatorResult,
 } from '@nestjs/terminus';
 import { Kafka } from 'kafkajs';
 import type { Pool } from 'pg';
@@ -19,7 +22,7 @@ export class HealthController {
   constructor(
     private readonly health: HealthCheckService,
     @Inject(PG_POOL) private readonly db: Pool,
-    @Inject(REDIS)   private readonly redis: Redis,
+    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   @Public()
@@ -80,7 +83,9 @@ export class HealthController {
           await admin.connect();
           await admin.describeCluster();
         })(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('kafka health timeout')), 1500)),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('kafka health timeout')), 1500),
+        ),
       ]);
       return { kafka: { status: 'up' } };
     } catch (e) {

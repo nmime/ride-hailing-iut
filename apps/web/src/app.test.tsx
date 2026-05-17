@@ -4,12 +4,18 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('react-leaflet', () => ({
-  MapContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="map">{children}</div>,
+  MapContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="map">{children}</div>
+  ),
   TileLayer: () => null,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Popup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  useMap: () => ({ setView: vi.fn(), invalidateSize: vi.fn(), getContainer: () => document.createElement('div') }),
+  useMap: () => ({
+    setView: vi.fn(),
+    invalidateSize: vi.fn(),
+    getContainer: () => document.createElement('div'),
+  }),
 }));
 
 vi.mock('leaflet', () => ({
@@ -34,9 +40,15 @@ function installLocalStorage() {
   const store = new Map<string, string>();
   vi.stubGlobal('localStorage', {
     getItem: vi.fn((key: string) => store.get(key) ?? null),
-    setItem: vi.fn((key: string, value: string) => { store.set(key, value); }),
-    removeItem: vi.fn((key: string) => { store.delete(key); }),
-    clear: vi.fn(() => { store.clear(); }),
+    setItem: vi.fn((key: string, value: string) => {
+      store.set(key, value);
+    }),
+    removeItem: vi.fn((key: string) => {
+      store.delete(key);
+    }),
+    clear: vi.fn(() => {
+      store.clear();
+    }),
   });
 }
 
@@ -85,7 +97,6 @@ describe('RideX web app shell', () => {
     expect(html).toContain('Audit reporting');
   });
 
-
   it('renders driver availability as an accessible guarded toggle', () => {
     auth.setSession({ id: 'driver-1', role: 'driver', token: 'jwt-token' });
 
@@ -109,7 +120,11 @@ describe('RideX web app shell', () => {
 
   it('renders rating stars as a labelled keyboard-friendly radiogroup', () => {
     const html = renderToStaticMarkup(
-      <RatingDialog tripId="trip-123456789" onSubmit={async () => undefined} onDismiss={() => undefined} />,
+      <RatingDialog
+        tripId="trip-123456789"
+        onSubmit={async () => undefined}
+        onDismiss={() => undefined}
+      />,
     );
 
     expect(html).toContain('role="radiogroup"');
@@ -173,20 +188,24 @@ describe('RideX web API client', () => {
 
     expect(next).toEqual(session);
     expect(auth.getSession()).toEqual(session);
-    expect(fetchMock).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ phone: '+998901111111', password: 'ChangeMe123!' }),
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ phone: '+998901111111', password: 'ChangeMe123!' }),
+      }),
+    );
   });
 
   it('sends authenticated trip requests to the backend without local mock data', async () => {
     auth.setSession({ id: 'rider-1', role: 'rider', token: 'jwt-token' });
     const fetchMock = vi.fn<[input: RequestInfo | URL, init?: RequestInit], Promise<Response>>(
-      async () => jsonResponse({
-        id: 'trip-1',
-        status: 'requested',
-        requested_at: '2026-04-28T10:00:00.000Z',
-      }),
+      async () =>
+        jsonResponse({
+          id: 'trip-1',
+          status: 'requested',
+          requested_at: '2026-04-28T10:00:00.000Z',
+        }),
     );
     vi.stubGlobal('fetch', fetchMock);
 
@@ -197,13 +216,16 @@ describe('RideX web API client', () => {
       dropoff_address: 'Inha University in Tashkent',
     });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/trips', expect.objectContaining({
-      method: 'POST',
-      headers: expect.objectContaining({
-        authorization: 'Bearer jwt-token',
-        'content-type': 'application/json',
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/trips',
+      expect.objectContaining({
+        method: 'POST',
+        headers: expect.objectContaining({
+          authorization: 'Bearer jwt-token',
+          'content-type': 'application/json',
+        }),
       }),
-    }));
+    );
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
     expect(JSON.parse(String(requestInit?.body))).toEqual({
       pickup: { lat: 41.311, lon: 69.279 },
@@ -222,12 +244,15 @@ describe('RideX web API client', () => {
 
     await api.cancelTrip('trip-1');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/trips/trip-1/cancel', expect.objectContaining({
-      method: 'POST',
-      headers: {
-        authorization: 'Bearer jwt-token',
-      },
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/trips/trip-1/cancel',
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          authorization: 'Bearer jwt-token',
+        },
+      }),
+    );
   });
 
   it('submits ratings to the new /trips/:id/rating endpoint', async () => {
@@ -248,20 +273,33 @@ describe('RideX web API client', () => {
   it('lists vehicles for the authenticated driver', async () => {
     auth.setSession({ id: 'driver-1', role: 'driver', token: 'jwt-token' });
     const fetchMock = vi.fn<[input: RequestInfo | URL, init?: RequestInit], Promise<Response>>(
-      async () => jsonResponse([
-        { id: 'v-1', driver_id: 'driver-1', plate: '01A123BC', make: 'Chevrolet',
-          model: 'Cobalt', year: 2022, color: 'White', capacity: 4, is_active: true,
-          created_at: '2026-01-01T00:00:00Z' },
-      ]),
+      async () =>
+        jsonResponse([
+          {
+            id: 'v-1',
+            driver_id: 'driver-1',
+            plate: '01A123BC',
+            make: 'Chevrolet',
+            model: 'Cobalt',
+            year: 2022,
+            color: 'White',
+            capacity: 4,
+            is_active: true,
+            created_at: '2026-01-01T00:00:00Z',
+          },
+        ]),
     );
     vi.stubGlobal('fetch', fetchMock);
 
     const list = await api.vehicles();
     expect(list).toHaveLength(1);
     expect(list[0].plate).toBe('01A123BC');
-    expect(fetchMock).toHaveBeenCalledWith('/api/vehicles', expect.objectContaining({
-      headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/vehicles',
+      expect.objectContaining({
+        headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
+      }),
+    );
   });
 
   it('reads typed admin report and surge endpoints', async () => {
@@ -270,7 +308,14 @@ describe('RideX web API client', () => {
       async (input) => {
         if (String(input) === '/api/admin/reports/daily') {
           return jsonResponse([
-            { driver_id: 'driver-1', day: '2026-04-28T00:00:00.000Z', trips: '3', total_km: '12.5', total_minutes: '31.2', gross_revenue: '25.75' },
+            {
+              driver_id: 'driver-1',
+              day: '2026-04-28T00:00:00.000Z',
+              trips: '3',
+              total_km: '12.5',
+              total_minutes: '31.2',
+              gross_revenue: '25.75',
+            },
           ]);
         }
         if (String(input) === '/api/admin/surge') {
@@ -288,20 +333,30 @@ describe('RideX web API client', () => {
 
     expect(daily[0].gross_revenue).toBe('25.75');
     expect(surge[0].base_multiplier).toBe('1.25');
-    expect(fetchMock).toHaveBeenCalledWith('/api/admin/reports/daily', expect.objectContaining({
-      headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
-    }));
-    expect(fetchMock).toHaveBeenCalledWith('/api/admin/surge', expect.objectContaining({
-      headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/reports/daily',
+      expect.objectContaining({
+        headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/surge',
+      expect.objectContaining({
+        headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
+      }),
+    );
   });
 });
 
 describe('RideX websocket payload guards', () => {
   it('accepts only valid driver location payloads for live rider tracking', () => {
-    expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 41.311, lon: 69.279, ts: 1777370400000 })).toBe(true);
+    expect(
+      isDriverLocationEvent({ driver_id: 'driver-1', lat: 41.311, lon: 69.279, ts: 1777370400000 }),
+    ).toBe(true);
     expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 141.311, lon: 69.279 })).toBe(false);
-    expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 41.311, lon: '69.279' })).toBe(false);
+    expect(isDriverLocationEvent({ driver_id: 'driver-1', lat: 41.311, lon: '69.279' })).toBe(
+      false,
+    );
     expect(isDriverLocationEvent({ lat: 41.311, lon: 69.279 })).toBe(false);
   });
 });

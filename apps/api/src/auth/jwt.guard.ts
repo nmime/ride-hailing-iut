@@ -1,5 +1,10 @@
 import {
-  CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException, SetMetadata,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+  SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
@@ -11,11 +16,12 @@ export const PUBLIC = 'is_public';
 export const Public = () => SetMetadata(PUBLIC, true);
 
 export const ROLES = 'roles';
-export const Roles = (...roles: Array<'rider' | 'driver' | 'admin'>) =>
-  SetMetadata(ROLES, roles);
+export const Roles = (...roles: Array<'rider' | 'driver' | 'admin'>) => SetMetadata(ROLES, roles);
 
 declare module 'fastify' {
-  interface FastifyRequest { user?: JwtPayload; }
+  interface FastifyRequest {
+    user?: JwtPayload;
+  }
 }
 
 @Injectable()
@@ -27,7 +33,8 @@ export class JwtAuthGuard implements CanActivate {
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(PUBLIC, [
-      ctx.getHandler(), ctx.getClass(),
+      ctx.getHandler(),
+      ctx.getClass(),
     ]);
     if (isPublic) return true;
 
@@ -42,9 +49,8 @@ export class JwtAuthGuard implements CanActivate {
       throw new UnauthorizedException('invalid token');
     }
 
-    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES, [
-      ctx.getHandler(), ctx.getClass(),
-    ]) ?? [];
+    const requiredRoles =
+      this.reflector.getAllAndOverride<string[]>(ROLES, [ctx.getHandler(), ctx.getClass()]) ?? [];
     if (requiredRoles.length && !requiredRoles.includes(req.user!.role)) {
       throw new ForbiddenException(`requires role: ${requiredRoles.join('|')}`);
     }

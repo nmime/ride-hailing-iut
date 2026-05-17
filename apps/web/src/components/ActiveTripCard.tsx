@@ -44,9 +44,8 @@ export function ActiveTripCard({ online }: ActiveTripCardProps) {
       try {
         const list = await api.listTrips({ limit: 5 });
         if (cancelled) return;
-        const active = list.find(
-          (t) => t.status === 'matched' || t.status === 'in_progress',
-        ) ?? null;
+        const active =
+          list.find((t) => t.status === 'matched' || t.status === 'in_progress') ?? null;
         setTrip(active);
         setErr(null);
       } catch (e) {
@@ -66,39 +65,48 @@ export function ActiveTripCard({ online }: ActiveTripCardProps) {
 
   async function start() {
     if (!trip) return;
-    setBusy(true); setErr(null);
+    setBusy(true);
+    setErr(null);
     try {
       const next = await api.startTrip(trip.id);
       setTrip(mergeTrip(trip, next));
       toast('Trip started', 'success');
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function complete() {
     if (!trip) return;
-    setBusy(true); setErr(null);
+    setBusy(true);
+    setErr(null);
     try {
       const result = await api.completeTrip(trip.id);
       toast(`Trip completed · ${fareText(result)}`, 'success');
       setTrip(null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function cancel() {
     if (!trip) return;
     if (!confirm('Cancel this trip?')) return;
-    setBusy(true); setErr(null);
+    setBusy(true);
+    setErr(null);
     try {
       await api.cancelTrip(trip.id);
       toast('Trip cancelled', 'info');
       setTrip(null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -112,17 +120,27 @@ export function ActiveTripCard({ online }: ActiveTripCardProps) {
         )}
       </div>
 
-      {err && <div className="error" role="alert">{err}</div>}
+      {err && (
+        <div className="error" role="alert">
+          {err}
+        </div>
+      )}
 
       {!online ? (
         <p className="muted">Go online to receive trip assignments.</p>
       ) : !trip ? (
-        <p className="muted">{loading ? 'Checking for assignments...' : 'No assigned trip yet. Stay nearby and visible.'}</p>
+        <p className="muted">
+          {loading
+            ? 'Checking for assignments...'
+            : 'No assigned trip yet. Stay nearby and visible.'}
+        </p>
       ) : (
         <div className="active-trip stack">
           <div className="active-trip-header">
             <span>Trip {trip.id.slice(0, 8)}</span>
-            <strong>{trip.pickup_address ?? 'Pickup'} → {trip.dropoff_address ?? 'Dropoff'}</strong>
+            <strong>
+              {trip.pickup_address ?? 'Pickup'} → {trip.dropoff_address ?? 'Dropoff'}
+            </strong>
           </div>
           <div className="active-trip-meta">
             <div>

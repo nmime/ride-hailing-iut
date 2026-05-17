@@ -1,6 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDefined, IsLatitude, IsLongitude, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import {
+  IsDefined,
+  IsLatitude,
+  IsLongitude,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class GeoPointDto {
   @ApiProperty({ example: 41.311 })
@@ -28,10 +37,14 @@ export class CreateTripDto {
   dropoff!: GeoPointDto;
 
   @ApiProperty({ required: false, example: 'Amir Temur Square' })
-  @IsOptional() @IsString() @MaxLength(256)
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
   pickup_address?: string;
 
   @ApiProperty({ required: false, example: 'Inha University in Tashkent' })
-  @IsOptional() @IsString() @MaxLength(256)
+  @IsOptional()
+  @IsString()
+  @MaxLength(256)
   dropoff_address?: string;
 }

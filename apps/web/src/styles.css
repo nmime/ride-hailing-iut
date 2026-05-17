@@ -32,7 +32,14 @@ body,
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   overflow-x: hidden;
 }
 
@@ -153,7 +160,9 @@ p {
   font-size: 14px;
   font-weight: 700;
   text-decoration: none;
-  transition: background-color 180ms ease, color 180ms ease;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
 }
 
 .topnav a:hover,
@@ -196,7 +205,11 @@ p {
     linear-gradient(0deg, rgba(23, 98, 74, 0.08) 1px, transparent 1px),
     radial-gradient(circle at 72% 24%, rgba(199, 95, 59, 0.18), transparent 28%),
     linear-gradient(135deg, #f9fbf6, #edf3ec 62%, #fff8ef);
-  background-size: 56px 56px, 56px 56px, auto, auto;
+  background-size:
+    56px 56px,
+    56px 56px,
+    auto,
+    auto;
 }
 
 .map-lattice {
@@ -206,7 +219,12 @@ p {
   border-radius: 18px;
   background:
     linear-gradient(33deg, transparent 0 46%, rgba(23, 98, 74, 0.22) 46% 48%, transparent 48% 100%),
-    linear-gradient(142deg, transparent 0 48%, rgba(103, 66, 164, 0.18) 48% 50%, transparent 50% 100%);
+    linear-gradient(
+      142deg,
+      transparent 0 48%,
+      rgba(103, 66, 164, 0.18) 48% 50%,
+      transparent 50% 100%
+    );
 }
 
 .route-line {
@@ -407,7 +425,10 @@ p {
   border: 1px solid var(--line);
   border-radius: 8px;
   text-decoration: none;
-  transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .role-link:hover {
@@ -606,8 +627,7 @@ p {
   min-height: 176px;
   padding: 26px;
   background:
-    linear-gradient(135deg, rgba(23, 98, 74, 0.08), rgba(199, 95, 59, 0.08)),
-    var(--surface);
+    linear-gradient(135deg, rgba(23, 98, 74, 0.08), rgba(199, 95, 59, 0.08)), var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
 }
@@ -965,7 +985,9 @@ input {
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   outline: none;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 input:focus {
@@ -988,7 +1010,11 @@ input:focus {
   font-weight: 800;
   text-align: center;
   text-decoration: none;
-  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .btn:hover {
@@ -1064,7 +1090,10 @@ input:focus {
   border: 1px solid var(--line);
   border-radius: 8px;
   text-decoration: none;
-  transition: border-color 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .route-card:hover,
@@ -1212,7 +1241,7 @@ input:focus {
 .event-row code {
   max-width: 100%;
   color: #f7f0e9;
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
   font-size: 12px;
   overflow-wrap: anywhere;
 }
@@ -1494,10 +1523,19 @@ td {
   border-radius: 50%;
 }
 
-.leaflet-pin-pickup  .pin-dot { background: var(--primary); }
-.leaflet-pin-dropoff .pin-dot { background: var(--accent); }
-.leaflet-pin-driver  .pin-dot { background: var(--violet); }
-.leaflet-pin-nearby  .pin-dot { background: var(--violet); opacity: 0.85; }
+.leaflet-pin-pickup .pin-dot {
+  background: var(--primary);
+}
+.leaflet-pin-dropoff .pin-dot {
+  background: var(--accent);
+}
+.leaflet-pin-driver .pin-dot {
+  background: var(--violet);
+}
+.leaflet-pin-nearby .pin-dot {
+  background: var(--violet);
+  opacity: 0.85;
+}
 
 .user-menu {
   position: relative;
@@ -1513,7 +1551,9 @@ td {
   border: 1px solid var(--line);
   border-radius: 999px;
   cursor: pointer;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .user-menu-trigger:hover {
@@ -1665,13 +1705,25 @@ td {
   animation: toast-in 200ms ease-out;
 }
 
-.toast-success { background: var(--primary-strong); }
-.toast-error   { background: var(--danger); }
-.toast-info    { background: #2c3a32; }
+.toast-success {
+  background: var(--primary-strong);
+}
+.toast-error {
+  background: var(--danger);
+}
+.toast-info {
+  background: #2c3a32;
+}
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 textarea {
@@ -1714,8 +1766,12 @@ textarea:focus {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .rating-stars {
@@ -1735,18 +1791,28 @@ textarea:focus {
   color: var(--line-strong);
   font-size: 32px;
   line-height: 1;
-  transition: color 120ms ease, transform 120ms ease;
+  transition:
+    color 120ms ease,
+    transform 120ms ease;
 }
 
-.rating-star:hover { transform: scale(1.08); }
-.rating-star.filled { color: #f5b400; }
+.rating-star:hover {
+  transform: scale(1.08);
+}
+.rating-star.filled {
+  color: #f5b400;
+}
 
 .visually-hidden {
   position: absolute !important;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0);
-  white-space: nowrap; border: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .vehicle-list {

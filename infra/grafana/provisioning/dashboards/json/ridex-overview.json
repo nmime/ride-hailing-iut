@@ -59,7 +59,13 @@
           "refId": "A",
           "queryType": "traceqlSearch",
           "filters": [
-            { "id": "service-name", "tag": "service.name", "operator": "=", "scope": "resource", "value": ["ridex-api"] }
+            {
+              "id": "service-name",
+              "tag": "service.name",
+              "operator": "=",
+              "scope": "resource",
+              "value": ["ridex-api"]
+            }
           ]
         }
       ]
@@ -78,7 +84,17 @@
       "title": "Batch failures (cron)",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "x": 6, "y": 25, "w": 6, "h": 4 },
-      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":0},{"color":"red","value":1}] }}},
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      },
       "targets": [{ "refId": "A", "expr": "ridex_batch_failures_total" }]
     },
     {

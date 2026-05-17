@@ -21,13 +21,7 @@ const productPillars = [
   },
 ];
 
-const systemFlow = [
-  'Auth',
-  'Request',
-  'Match',
-  'Ingest',
-  'Report',
-];
+const systemFlow = ['Auth', 'Request', 'Match', 'Ingest', 'Report'];
 
 const platformStats = [
   { label: 'API replicas', value: '2x', tone: 'primary' },
@@ -65,12 +59,19 @@ export default function LandingPage() {
           <p className="eyebrow">Production ride-hailing workspace</p>
           <h1>Dispatch, drive, and audit from one polished console.</h1>
           <p className="hero-copy">
-            RideX is a complete role-based frontend wired to live auth, matching, location ingest, trip events, surge, ratings, Prometheus metrics, and deep readiness checks.
+            RideX is a complete role-based frontend wired to live auth, matching, location ingest,
+            trip events, surge, ratings, Prometheus metrics, and deep readiness checks.
           </p>
           <div className="hero-actions">
-            <Link className="btn primary" to="/rider">Request ride</Link>
-            <Link className="btn secondary" to="/driver">Open driver cockpit</Link>
-            <Link className="btn ghost" to="/admin">Audit operations</Link>
+            <Link className="btn primary" to="/rider">
+              Request ride
+            </Link>
+            <Link className="btn secondary" to="/driver">
+              Open driver cockpit
+            </Link>
+            <Link className="btn ghost" to="/admin">
+              Audit operations
+            </Link>
           </div>
           <div className="hero-stat-row" aria-label="Platform status summary">
             {platformStats.map((item) => (
@@ -82,18 +83,36 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <aside className="hero-status hero-dashboard" aria-label="Live operations dashboard preview">
+        <aside
+          className="hero-status hero-dashboard"
+          aria-label="Live operations dashboard preview"
+        >
           <div className="dashboard-head">
             <span>Marketplace pulse</span>
             <strong>Live system</strong>
           </div>
           <div className="dashboard-grid">
-            <div><span>Health</span><strong>Ready</strong></div>
-            <div><span>Events</span><strong>Streaming</strong></div>
-            <div><span>Rate limit</span><strong>On</strong></div>
-            <div><span>Maps</span><strong>Fast</strong></div>
+            <div>
+              <span>Health</span>
+              <strong>Ready</strong>
+            </div>
+            <div>
+              <span>Events</span>
+              <strong>Streaming</strong>
+            </div>
+            <div>
+              <span>Rate limit</span>
+              <strong>On</strong>
+            </div>
+            <div>
+              <span>Maps</span>
+              <strong>Fast</strong>
+            </div>
           </div>
-          <p>No mock data is used in the role screens; every workflow calls the running services through the gateway.</p>
+          <p>
+            No mock data is used in the role screens; every workflow calls the running services
+            through the gateway.
+          </p>
         </aside>
       </section>
 

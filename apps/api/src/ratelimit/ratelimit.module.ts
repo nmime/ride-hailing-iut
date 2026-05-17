@@ -1,7 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import {
-  TokenBucket, RedisTokenBucketStore, InMemoryTokenBucketStore,
-} from '@ridex/ratelimiter';
+import { TokenBucket, RedisTokenBucketStore, InMemoryTokenBucketStore } from '@ridex/ratelimiter';
 import type Redis from 'ioredis';
 
 import { REDIS } from '../redis/redis.module';

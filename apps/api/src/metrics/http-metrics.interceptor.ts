@@ -17,8 +17,10 @@ export class HttpMetricsInterceptor implements NestInterceptor {
     const start = process.hrtime.bigint();
     const req = context.switchToHttp().getRequest<FastifyRequest>();
     const res = context.switchToHttp().getResponse<FastifyReply>();
-    const route = (req as unknown as { routeOptions?: { url?: string }; url?: string })
-      .routeOptions?.url ?? req.url ?? 'unknown';
+    const route =
+      (req as unknown as { routeOptions?: { url?: string }; url?: string }).routeOptions?.url ??
+      req.url ??
+      'unknown';
     const method = req.method ?? 'GET';
 
     const finish = (status: number) => {
@@ -29,7 +31,7 @@ export class HttpMetricsInterceptor implements NestInterceptor {
 
     return next.handle().pipe(
       tap({
-        next:  () => finish(res.statusCode),
+        next: () => finish(res.statusCode),
         error: (e) => finish(typeof e?.status === 'number' ? e.status : 500),
       }),
     );

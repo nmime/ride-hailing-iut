@@ -1,8 +1,7 @@
 # RideX
 
 RideX is a full-stack ride-hailing mini-platform built for the **Database
-Application and Design** group project at Inha University in Tashkent, Spring
-2026.
+Application and Design** group project at Inha University in Tashkent, Spring 2026.
 
 The application covers the selected business scenario from the project
 specification: **driver/rider matching, live location streaming, trip history,
@@ -69,18 +68,18 @@ workflow diagrams are maintained in `docs/architecture.md` and `docs/bpmn/`.
 
 ## Tech Stack
 
-| Area | Implementation |
-|---|---|
-| Frontend | React 18, Vite, React Router, Leaflet / optional Yandex Maps |
-| REST API | NestJS 10, Fastify adapter, Swagger/OpenAPI |
-| Realtime API | Socket.IO WebSockets |
-| Relational data | Postgres 16 with PostGIS |
+| Area            | Implementation                                                  |
+| --------------- | --------------------------------------------------------------- |
+| Frontend        | React 18, Vite, React Router, Leaflet / optional Yandex Maps    |
+| REST API        | NestJS 10, Fastify adapter, Swagger/OpenAPI                     |
+| Realtime API    | Socket.IO WebSockets                                            |
+| Relational data | Postgres 16 with PostGIS                                        |
 | Polyglot stores | Redis for live GEO/cache/rate-limit state, Redpanda for streams |
-| Gateway | Nginx reverse proxy and API load balancer |
-| Stream pipeline | Redpanda topics: `driver.location.v1`, `trip.events.v1` |
-| Batch pipeline | Node cron worker refreshing reports and exports |
-| Observability | OpenTelemetry, Prometheus, Promtail, Loki, Tempo, Grafana |
-| Monorepo | pnpm workspaces, TypeScript |
+| Gateway         | Nginx reverse proxy and API load balancer                       |
+| Stream pipeline | Redpanda topics: `driver.location.v1`, `trip.events.v1`         |
+| Batch pipeline  | Node cron worker refreshing reports and exports                 |
+| Observability   | OpenTelemetry, Prometheus, Promtail, Loki, Tempo, Grafana       |
+| Monorepo        | pnpm workspaces, TypeScript                                     |
 
 ## Quick Start
 
@@ -132,22 +131,22 @@ docker compose exec api node dist/scripts/seed.js
 
 Seeded users use `RIDEX_SEED_PASSWORD` from `.env`.
 
-| Role | Phone |
-|---|---|
-| Admin | `+998900000000` |
-| Rider | `+998901111111` |
+| Role   | Phone           |
+| ------ | --------------- |
+| Admin  | `+998900000000` |
+| Rider  | `+998901111111` |
 | Driver | `+998903333333` |
 
 ## Useful URLs
 
-| URL | Purpose |
-|---|---|
-| `http://localhost` | React application through Nginx |
-| `http://localhost/api/docs` | Swagger UI |
-| `http://localhost/api/healthz` | API liveness check |
-| `http://localhost/api/readyz` | API readiness check with Postgres and Redis |
-| `http://localhost/api/metrics` | Prometheus metrics from the API |
-| `http://localhost/grafana/` | Grafana, default user from `.env` |
+| URL                            | Purpose                                     |
+| ------------------------------ | ------------------------------------------- |
+| `http://localhost`             | React application through Nginx             |
+| `http://localhost/api/docs`    | Swagger UI                                  |
+| `http://localhost/api/healthz` | API liveness check                          |
+| `http://localhost/api/readyz`  | API readiness check with Postgres and Redis |
+| `http://localhost/api/metrics` | Prometheus metrics from the API             |
+| `http://localhost/grafana/`    | Grafana, default user from `.env`           |
 
 All internal services stay on the `ridex` Docker network. Client traffic enters
 through the gateway.
@@ -216,28 +215,28 @@ The smoke test checks:
 
 See `.env.example` for the complete reference. The most important variables are:
 
-| Variable | Purpose |
-|---|---|
-| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | Postgres credentials and database name |
-| `DATABASE_URL` | Optional explicit Postgres connection string |
-| `REDIS_URL` | Redis connection used for GEO, cache, and rate limits |
-| `KAFKA_BROKERS` | Redpanda/Kafka bootstrap servers |
-| `TOPIC_DRIVER_LOCATION` | Driver location stream topic |
-| `TOPIC_TRIP_EVENTS` | Trip lifecycle event stream topic |
-| `API_PORT`, `API_HOST` | API listen configuration |
-| `JWT_SECRET`, `JWT_EXPIRES_IN` | Authentication signing settings |
-| `RIDEX_SEED_PASSWORD` | Password assigned to seeded demo users |
-| `WS_PORT`, `WS_CORS_ORIGINS` | WebSocket gateway settings |
-| `MATCHER_REPLICA_IDS`, `MATCHER_RING_VNODES` | Consistent-hash matcher ownership configuration |
-| `INGESTOR_PORT`, `INGESTOR_HOST` | Driver-location ingest service settings |
-| `VITE_API_BASE`, `VITE_WS_BASE`, `VITE_INGEST_BASE` | Frontend gateway paths |
-| `VITE_MAP_PROVIDER` | `auto`, `yandex`, or tile fallback |
-| `VITE_YANDEX_MAPS_API_KEY`, `VITE_YANDEX_MAPS_LANG` | Optional Yandex Maps browser integration |
-| `RATELIMIT_AUTH_*`, `RATELIMIT_USER_*` | Token-bucket rate-limit settings |
-| `SURGE_*` | Surge worker thresholds, max multiplier, and windows |
-| `CRON_*`, `EXPORTS_DIR` | Batch worker schedules and export directory |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME` | OpenTelemetry export settings |
-| `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`, `GRAFANA_ROOT_URL` | Grafana login and gateway subpath URL |
+| Variable                                                           | Purpose                                               |
+| ------------------------------------------------------------------ | ----------------------------------------------------- |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`                | Postgres credentials and database name                |
+| `DATABASE_URL`                                                     | Optional explicit Postgres connection string          |
+| `REDIS_URL`                                                        | Redis connection used for GEO, cache, and rate limits |
+| `KAFKA_BROKERS`                                                    | Redpanda/Kafka bootstrap servers                      |
+| `TOPIC_DRIVER_LOCATION`                                            | Driver location stream topic                          |
+| `TOPIC_TRIP_EVENTS`                                                | Trip lifecycle event stream topic                     |
+| `API_PORT`, `API_HOST`                                             | API listen configuration                              |
+| `JWT_SECRET`, `JWT_EXPIRES_IN`                                     | Authentication signing settings                       |
+| `RIDEX_SEED_PASSWORD`                                              | Password assigned to seeded demo users                |
+| `WS_PORT`, `WS_CORS_ORIGINS`                                       | WebSocket gateway settings                            |
+| `MATCHER_REPLICA_IDS`, `MATCHER_RING_VNODES`                       | Consistent-hash matcher ownership configuration       |
+| `INGESTOR_PORT`, `INGESTOR_HOST`                                   | Driver-location ingest service settings               |
+| `VITE_API_BASE`, `VITE_WS_BASE`, `VITE_INGEST_BASE`                | Frontend gateway paths                                |
+| `VITE_MAP_PROVIDER`                                                | `auto`, `yandex`, or tile fallback                    |
+| `VITE_YANDEX_MAPS_API_KEY`, `VITE_YANDEX_MAPS_LANG`                | Optional Yandex Maps browser integration              |
+| `RATELIMIT_AUTH_*`, `RATELIMIT_USER_*`                             | Token-bucket rate-limit settings                      |
+| `SURGE_*`                                                          | Surge worker thresholds, max multiplier, and windows  |
+| `CRON_*`, `EXPORTS_DIR`                                            | Batch worker schedules and export directory           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`                 | OpenTelemetry export settings                         |
+| `GRAFANA_ADMIN_USER`, `GRAFANA_ADMIN_PASSWORD`, `GRAFANA_ROOT_URL` | Grafana login and gateway subpath URL                 |
 
 Do not commit `.env`; use `.env.example` for shared defaults.
 
@@ -280,21 +279,21 @@ Do not commit `.env`; use `.env.example` for shared defaults.
 
 ## Project Requirement Coverage
 
-| Requirement | Where it is implemented or documented |
-|---|---|
-| R1 Business scenario and requirements | `docs/report-draft.md`; RideX scenario is ride-hailing with rider, driver, admin actors |
-| R2 Data model and architecture diagrams | `docs/architecture.md`, `docs/bpmn/`, SQL schema in `db/migrations/` |
-| R3 Relational DBMS implementation | Postgres/PostGIS in `docker-compose.yml`; migrations in `db/migrations/`; seeds in `db/seed/` |
-| R4 RESTful API and backend framework | NestJS/Fastify in `apps/api/`; Swagger at `/api/docs`; endpoint reference in `docs/api-endpoints.md` |
-| R5 Polyglot persistence | Redis GEO/cache/rate-limit state, Redpanda streams, PostGIS spatial queries |
+| Requirement                                  | Where it is implemented or documented                                                                |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| R1 Business scenario and requirements        | `docs/report-draft.md`; RideX scenario is ride-hailing with rider, driver, admin actors              |
+| R2 Data model and architecture diagrams      | `docs/architecture.md`, `docs/bpmn/`, SQL schema in `db/migrations/`                                 |
+| R3 Relational DBMS implementation            | Postgres/PostGIS in `docker-compose.yml`; migrations in `db/migrations/`; seeds in `db/seed/`        |
+| R4 RESTful API and backend framework         | NestJS/Fastify in `apps/api/`; Swagger at `/api/docs`; endpoint reference in `docs/api-endpoints.md` |
+| R5 Polyglot persistence                      | Redis GEO/cache/rate-limit state, Redpanda streams, PostGIS spatial queries                          |
 | R6 Cache, indexing, and storage optimisation | Redis GEO, surge cache, materialized views, GIN/GIST indexes; measurements in `docs/optimisation.md` |
-| R7 Additional API style | Socket.IO WebSockets in `services/ws-gateway/` and `apps/web/src/hooks/useTripSocket.ts` |
-| R8 API gateway and load balancing | Nginx config in `infra/nginx/`; two API replicas via Compose |
-| R9 Docker Compose orchestration | `docker-compose.yml` with health checks, named volumes, and one public gateway port |
-| R10 Batch or stream pipeline | Redpanda stream workers, cron batch worker, BPMN files in `docs/bpmn/` |
-| R11 From-scratch system component | `libs/consistent-hash/` and `libs/ratelimiter/`, both integrated into runtime services |
-| R12 Observability | OTel collector, Prometheus, Promtail, Loki, Tempo, Grafana configs in `infra/`; `/api/metrics` |
-| R13 Documentation | This README, `docs/api-endpoints.md`, Swagger UI, `CHANGELOG.md` |
+| R7 Additional API style                      | Socket.IO WebSockets in `services/ws-gateway/` and `apps/web/src/hooks/useTripSocket.ts`             |
+| R8 API gateway and load balancing            | Nginx config in `infra/nginx/`; two API replicas via Compose                                         |
+| R9 Docker Compose orchestration              | `docker-compose.yml` with health checks, named volumes, and one public gateway port                  |
+| R10 Batch or stream pipeline                 | Redpanda stream workers, cron batch worker, BPMN files in `docs/bpmn/`                               |
+| R11 From-scratch system component            | `libs/consistent-hash/` and `libs/ratelimiter/`, both integrated into runtime services               |
+| R12 Observability                            | OTel collector, Prometheus, Promtail, Loki, Tempo, Grafana configs in `infra/`; `/api/metrics`       |
+| R13 Documentation                            | This README, `docs/api-endpoints.md`, Swagger UI, `CHANGELOG.md`                                     |
 
 ## Documentation
 

@@ -42,13 +42,15 @@ function wsPath() {
 export function isDriverLocationEvent(evt: unknown): evt is DriverLocationEvent {
   if (typeof evt !== 'object' || evt === null) return false;
   const value = evt as Partial<DriverLocationEvent>;
-  return typeof value.driver_id === 'string'
-    && typeof value.lat === 'number'
-    && value.lat >= -90
-    && value.lat <= 90
-    && typeof value.lon === 'number'
-    && value.lon >= -180
-    && value.lon <= 180;
+  return (
+    typeof value.driver_id === 'string' &&
+    typeof value.lat === 'number' &&
+    value.lat >= -90 &&
+    value.lat <= 90 &&
+    typeof value.lon === 'number' &&
+    value.lon >= -180 &&
+    value.lon <= 180
+  );
 }
 
 export function useTripSocket(tripId: string | null, driverId?: string | null) {
@@ -80,10 +82,14 @@ export function useTripSocket(tripId: string | null, driverId?: string | null) {
     s.on('trip:event', (evt: TripSocketEvent) => setEvents((prev) => [...prev, evt]));
     s.on('driver:location', (evt: unknown) => {
       const currentDriverId = driverIdRef.current;
-      if (!currentDriverId || !isDriverLocationEvent(evt) || evt.driver_id !== currentDriverId) return;
+      if (!currentDriverId || !isDriverLocationEvent(evt) || evt.driver_id !== currentDriverId)
+        return;
       setDriverLocation(evt);
     });
-    return () => { s.disconnect(); setSocket(null); };
+    return () => {
+      s.disconnect();
+      setSocket(null);
+    };
   }, [tripId]);
 
   return { socket, events, driverLocation };

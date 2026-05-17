@@ -1,9 +1,24 @@
 import {
-  Controller, Get, Post, Param, Body, Query, HttpCode, Req,
-  DefaultValuePipe, HttpStatus, ParseIntPipe, ParseUUIDPipe,
+  Controller,
+  Get,
+  Post,
+  Param,
+  Body,
+  Query,
+  HttpCode,
+  Req,
+  DefaultValuePipe,
+  HttpStatus,
+  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import {
-  ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiQuery,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { FastifyRequest } from 'fastify';
 
@@ -34,7 +49,7 @@ export class TripsController {
   @Get()
   @ApiOperation({ summary: 'List trips visible to the caller' })
   @ApiQuery({ name: 'status', required: false })
-  @ApiQuery({ name: 'limit',  required: false, type: Number })
+  @ApiQuery({ name: 'limit', required: false, type: Number })
   list(
     @Req() req: FastifyRequest,
     @Query('status') status?: string,
@@ -79,11 +94,7 @@ export class TripsController {
   @HttpCode(201)
   @ApiOperation({ summary: 'Rider rates the driver after a completed trip (1-5)' })
   @ApiResponse({ status: 409, description: 'trip already rated' })
-  rate(
-    @Param('id', UUID_PIPE) id: string,
-    @Body() dto: RateTripDto,
-    @Req() req: FastifyRequest,
-  ) {
+  rate(@Param('id', UUID_PIPE) id: string, @Body() dto: RateTripDto, @Req() req: FastifyRequest) {
     return this.trips.rate(id, req.user!.sub, dto);
   }
 }

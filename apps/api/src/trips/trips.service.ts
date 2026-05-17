@@ -1,12 +1,18 @@
 import {
-  BadRequestException, ConflictException, Inject, Injectable, Logger,
-  NotFoundException, OnModuleDestroy, OnModuleInit,
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
 } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import type { Producer } from 'kafkajs';
 import type Redis from 'ioredis';
 
-import { PG_POOL }       from '../db/db.module';
+import { PG_POOL } from '../db/db.module';
 import { KAFKA_PRODUCER } from '../kafka/kafka.module';
 import { REDIS } from '../redis/redis.module';
 import { CreateTripDto } from './dto/create-trip.dto';
@@ -30,17 +36,20 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
   private outboxRunning = false;
 
   constructor(
-    @Inject(PG_POOL)        private readonly db: Pool,
+    @Inject(PG_POOL) private readonly db: Pool,
     @Inject(KAFKA_PRODUCER) private readonly kafka: Producer,
-    @Inject(REDIS)          private readonly redis: Redis,
+    @Inject(REDIS) private readonly redis: Redis,
     private readonly metrics: MetricsService,
   ) {}
 
   onModuleInit() {
     const intervalMs = requiredNumberEnv('TRIP_EVENT_OUTBOX_INTERVAL_MS', { min: 1000 });
-    this.outboxTimer = setInterval(() => {
-      void this.publishPendingTripEvents();
-    }, Math.max(1000, intervalMs));
+    this.outboxTimer = setInterval(
+      () => {
+        void this.publishPendingTripEvents();
+      },
+      Math.max(1000, intervalMs),
+    );
     this.outboxTimer.unref();
     void this.publishPendingTripEvents();
   }
@@ -61,10 +70,15 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
                  ST_SetSRID(ST_MakePoint($4,$5),4326)::geography,
                  $6, $7)
          RETURNING id, status, requested_at`,
-        [riderId,
-         dto.pickup.lon, dto.pickup.lat,
-         dto.dropoff.lon, dto.dropoff.lat,
-         dto.pickup_address ?? null, dto.dropoff_address ?? null],
+        [
+          riderId,
+          dto.pickup.lon,
+          dto.pickup.lat,
+          dto.dropoff.lon,
+          dto.dropoff.lat,
+          dto.pickup_address ?? null,
+          dto.dropoff_address ?? null,
+        ],
       );
       const created = rows[0];
       if (!created) throw new BadRequestException('trip could not be created');
@@ -86,10 +100,23 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
     return trip;
   }
 
-  async list({ status, limit = 50, actor }: { status?: string; limit?: number; actor: JwtPayload }) {
+  async list({
+    status,
+    limit = 50,
+    actor,
+  }: {
+    status?: string;
+    limit?: number;
+    actor: JwtPayload;
+  }) {
     const allowedStatuses = [
-      'requested', 'matched', 'in_progress', 'completed',
-      'cancelled_by_rider', 'cancelled_by_driver', 'expired',
+      'requested',
+      'matched',
+      'in_progress',
+      'completed',
+      'cancelled_by_rider',
+      'cancelled_by_driver',
+      'expired',
     ];
     if (status && !allowedStatuses.includes(status)) {
       throw new BadRequestException(`status must be one of: ${allowedStatuses.join(', ')}`);
@@ -152,7 +179,9 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
       ));
       if (rows[0]) {
         if (rows[0].driver_id) {
-          await client.query(`UPDATE drivers SET status = 'online' WHERE user_id = $1`, [rows[0].driver_id]);
+          await client.query(`UPDATE drivers SET status = 'online' WHERE user_id = $1`, [
+            rows[0].driver_id,
+          ]);
         }
         await this.recordTripEvent(client, id, 'cancelled', { by: actorRole, status: newStatus });
       }
@@ -171,7 +200,8 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async start(id: string, actor: JwtPayload) {
-    if (actor.role !== 'driver') throw new BadRequestException('only the matched driver can start a trip');
+    if (actor.role !== 'driver')
+      throw new BadRequestException('only the matched driver can start a trip');
 
     const client = await this.db.connect();
     let trip: { id: string; status: string } | undefined;
@@ -203,19 +233,22 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async complete(id: string, actor: JwtPayload) {
-    if (actor.role !== 'driver') throw new BadRequestException('only the matched driver can complete a trip');
+    if (actor.role !== 'driver')
+      throw new BadRequestException('only the matched driver can complete a trip');
 
     const client = await this.db.connect();
-    let result: {
-      id: string;
-      status: string;
-      distance_km: string;
-      duration_min: string;
-      surge_multiplier: string;
-      total: string;
-      fare_total: string;
-      currency: string;
-    } | undefined;
+    let result:
+      | {
+          id: string;
+          status: string;
+          distance_km: string;
+          duration_min: string;
+          surge_multiplier: string;
+          total: string;
+          fare_total: string;
+          currency: string;
+        }
+      | undefined;
     try {
       await client.query('BEGIN');
       const completed = await client.query<{
@@ -246,7 +279,8 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
       const distanceKm = Number(fare.distance_km);
       const durationMin = Number(fare.duration_min);
       const surgeMultiplier = await this.resolveSurge(fare.zone_id, fare.zone_multiplier);
-      const total = Math.round((2.50 + distanceKm * 0.80 + durationMin * 0.18) * surgeMultiplier * 100) / 100;
+      const total =
+        Math.round((2.5 + distanceKm * 0.8 + durationMin * 0.18) * surgeMultiplier * 100) / 100;
 
       await client.query(
         `INSERT INTO fare_records (
@@ -260,12 +294,12 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
                 surge_multiplier = EXCLUDED.surge_multiplier,
                 total = EXCLUDED.total,
                 currency = EXCLUDED.currency`,
-        [id, 2.50, distanceKm, durationMin, surgeMultiplier, total],
+        [id, 2.5, distanceKm, durationMin, surgeMultiplier, total],
       );
-      await client.query(
-        `UPDATE trips SET fare_total = $2, currency = 'USD' WHERE id = $1`,
-        [id, total],
-      );
+      await client.query(`UPDATE trips SET fare_total = $2, currency = 'USD' WHERE id = $1`, [
+        id,
+        total,
+      ]);
       await client.query(`UPDATE drivers SET status = 'online' WHERE user_id = $1`, [actor.sub]);
 
       result = {
@@ -287,7 +321,11 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
       });
       await client.query('COMMIT');
     } catch (e) {
-      try { await client.query('ROLLBACK'); } catch { /* transaction may already be closed */ }
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        /* transaction may already be closed */
+      }
       throw e;
     } finally {
       client.release();
@@ -328,7 +366,11 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
       await this.recordTripEvent(client, tripId, 'rated', { rating: dto.rating });
       await client.query('COMMIT');
     } catch (e) {
-      try { await client.query('ROLLBACK'); } catch { /* transaction may already be closed */ }
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        /* transaction may already be closed */
+      }
       if (typeof e === 'object' && e !== null && (e as { code?: string }).code === '23505') {
         throw new ConflictException('trip already rated');
       }
@@ -346,10 +388,7 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
    * by `services/surge-worker`). Fall back to the value computed by
    * PostGIS during the same UPDATE if the cache is cold.
    */
-  private async resolveSurge(
-    zoneId: string | null,
-    pgMultiplier: string | null,
-  ): Promise<number> {
+  private async resolveSurge(zoneId: string | null, pgMultiplier: string | null): Promise<number> {
     if (!zoneId) return 1.0;
     try {
       const cached = await this.redis.hget(`surge:zone:${zoneId}`, 'multiplier');
@@ -428,7 +467,11 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
       }
       await client.query('COMMIT');
     } catch (e) {
-      try { await client.query('ROLLBACK'); } catch { /* transaction may already be closed */ }
+      try {
+        await client.query('ROLLBACK');
+      } catch {
+        /* transaction may already be closed */
+      }
       this.log.warn({ err: e }, 'trip event outbox flush failed');
     } finally {
       client.release();
@@ -441,9 +484,10 @@ export class TripsService implements OnModuleInit, OnModuleDestroy {
     eventType: string,
     payload: Record<string, unknown> | string | null,
   ): Record<string, unknown> & { trip_id: string } {
-    const parsed = typeof payload === 'string'
-      ? JSON.parse(payload) as Record<string, unknown>
-      : payload ?? {};
+    const parsed =
+      typeof payload === 'string'
+        ? (JSON.parse(payload) as Record<string, unknown>)
+        : (payload ?? {});
     return {
       type: `trip.${eventType}`,
       trip_id: tripId,

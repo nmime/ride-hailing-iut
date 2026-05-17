@@ -1,6 +1,4 @@
-import {
-  Controller, Get, Inject, Module, NotFoundException, Req,
-} from '@nestjs/common';
+import { Controller, Get, Inject, Module, NotFoundException, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';

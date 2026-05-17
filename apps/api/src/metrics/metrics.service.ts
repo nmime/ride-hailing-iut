@@ -30,7 +30,7 @@ export class MetricsService {
   private readonly log = new Logger(MetricsService.name);
 
   private readonly counters = new Map<string, Map<string, number>>();
-  private readonly gauges   = new Map<string, Map<string, number>>();
+  private readonly gauges = new Map<string, Map<string, number>>();
   private readonly histograms = new Map<string, Map<string, HistogramSeries>>();
 
   // ---------- API ----------
@@ -121,9 +121,30 @@ export class MetricsService {
   }
 
   // -------- internals ----------
-  private ensureCounter(name: string)   { let m = this.counters.get(name);   if (!m) { m = new Map(); this.counters.set(name, m); }   return m; }
-  private ensureGauge(name: string)     { let m = this.gauges.get(name);     if (!m) { m = new Map(); this.gauges.set(name, m); }     return m; }
-  private ensureHistogram(name: string) { let m = this.histograms.get(name); if (!m) { m = new Map(); this.histograms.set(name, m); } return m; }
+  private ensureCounter(name: string) {
+    let m = this.counters.get(name);
+    if (!m) {
+      m = new Map();
+      this.counters.set(name, m);
+    }
+    return m;
+  }
+  private ensureGauge(name: string) {
+    let m = this.gauges.get(name);
+    if (!m) {
+      m = new Map();
+      this.gauges.set(name, m);
+    }
+    return m;
+  }
+  private ensureHistogram(name: string) {
+    let m = this.histograms.get(name);
+    if (!m) {
+      m = new Map();
+      this.histograms.set(name, m);
+    }
+    return m;
+  }
 }
 
 function serialise(labels: Record<string, string>): string {

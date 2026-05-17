@@ -75,7 +75,9 @@ export function RatingDialog({ tripId, onSubmit, onDismiss }: RatingDialogProps)
           <p className="eyebrow">Rate your driver</p>
           <h2 id="rating-title">How was trip {tripId.slice(0, 8)}?</h2>
         </div>
-        <p id="rating-help" className="visually-hidden">Use arrow keys, Home, or End to choose a rating from 1 to 5 stars.</p>
+        <p id="rating-help" className="visually-hidden">
+          Use arrow keys, Home, or End to choose a rating from 1 to 5 stars.
+        </p>
         <div
           className="rating-stars"
           role="radiogroup"
@@ -87,7 +89,9 @@ export function RatingDialog({ tripId, onSubmit, onDismiss }: RatingDialogProps)
             return (
               <button
                 key={n}
-                ref={(node) => { starRefs.current[n - 1] = node; }}
+                ref={(node) => {
+                  starRefs.current[n - 1] = node;
+                }}
                 type="button"
                 role="radio"
                 aria-checked={rating === n}
@@ -102,7 +106,9 @@ export function RatingDialog({ tripId, onSubmit, onDismiss }: RatingDialogProps)
                 onClick={() => chooseRating(n)}
               >
                 <span aria-hidden="true">★</span>
-                <span className="visually-hidden">{n} star{n === 1 ? '' : 's'}</span>
+                <span className="visually-hidden">
+                  {n} star{n === 1 ? '' : 's'}
+                </span>
               </button>
             );
           })}
@@ -118,12 +124,23 @@ export function RatingDialog({ tripId, onSubmit, onDismiss }: RatingDialogProps)
             maxLength={512}
           />
         </label>
-        {err && <div className="error" role="alert">{err}</div>}
+        {err && (
+          <div className="error" role="alert">
+            {err}
+          </div>
+        )}
         <div className="button-row">
-          <button type="submit" className="btn primary" disabled={submitting} aria-busy={submitting}>
+          <button
+            type="submit"
+            className="btn primary"
+            disabled={submitting}
+            aria-busy={submitting}
+          >
             {submitting ? 'Submitting...' : 'Submit rating'}
           </button>
-          <button type="button" className="btn ghost" onClick={onDismiss}>Maybe later</button>
+          <button type="button" className="btn ghost" onClick={onDismiss}>
+            Maybe later
+          </button>
         </div>
       </form>
     </div>

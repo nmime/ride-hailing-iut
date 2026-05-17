@@ -11,11 +11,11 @@ x-api-build: &api-build
   env_file: .env
   depends_on:
     postgres: { condition: service_healthy }
-    redis:    { condition: service_healthy }
+    redis: { condition: service_healthy }
     redpanda: { condition: service_healthy }
   networks: [ridex]
   healthcheck:
-    test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/readyz"]
+    test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:3000/readyz']
     interval: 10s
     timeout: 3s
     retries: 5
@@ -34,7 +34,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -43,11 +43,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: ridex-redis
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 10
@@ -75,7 +75,7 @@ services:
     volumes:
       - rpdata:/var/lib/redpanda/data
     healthcheck:
-      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      test: ['CMD-SHELL', "rpk cluster health | grep -q 'Healthy:.*true'"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -97,10 +97,10 @@ services:
     <<: *api-build
     deploy:
       replicas: 2
-    expose: ["3000"]
+    expose: ['3000']
     environment:
       MIGRATIONS_DIR: /app/db/migrations
-      SEED_PATH:      /app/db/seed/seed.sql
+      SEED_PATH: /app/db/seed/seed.sql
     volumes:
       # Bind-mount migrations + seed so SQL changes don't require rebuild
       - ./db:/app/db:ro
@@ -111,10 +111,10 @@ services:
       dockerfile: services/ws-gateway/Dockerfile
     env_file: .env
     depends_on:
-      redis:    { condition: service_healthy }
+      redis: { condition: service_healthy }
       redpanda: { condition: service_healthy }
       postgres: { condition: service_healthy }
-    expose: ["3100"]
+    expose: ['3100']
     networks: [ridex]
 
   # Two named matcher services (rather than `deploy.replicas`) so each gets
@@ -128,7 +128,7 @@ services:
     env_file: .env
     hostname: matcher-0
     depends_on:
-      redis:    { condition: service_healthy }
+      redis: { condition: service_healthy }
       redpanda: { condition: service_healthy }
       postgres: { condition: service_healthy }
     networks: [ridex]
@@ -140,7 +140,7 @@ services:
     env_file: .env
     hostname: matcher-1
     depends_on:
-      redis:    { condition: service_healthy }
+      redis: { condition: service_healthy }
       redpanda: { condition: service_healthy }
       postgres: { condition: service_healthy }
     networks: [ridex]
@@ -151,10 +151,10 @@ services:
       dockerfile: services/ingestor/Dockerfile
     env_file: .env
     depends_on:
-      redis:    { condition: service_healthy }
+      redis: { condition: service_healthy }
       redpanda: { condition: service_healthy }
       postgres: { condition: service_healthy }
-    expose: ["3200"]
+    expose: ['3200']
     networks: [ridex]
 
   surge-worker:
@@ -163,7 +163,7 @@ services:
       dockerfile: services/surge-worker/Dockerfile
     env_file: .env
     depends_on:
-      redis:    { condition: service_healthy }
+      redis: { condition: service_healthy }
       redpanda: { condition: service_healthy }
       postgres: { condition: service_healthy }
     networks: [ridex]
@@ -177,7 +177,7 @@ services:
       postgres: { condition: service_healthy }
     volumes:
       - exports:/var/exports
-    expose: ["9300"]
+    expose: ['9300']
     networks: [ridex]
 
   web:
@@ -189,7 +189,7 @@ services:
         VITE_YANDEX_MAPS_API_KEY: ${VITE_YANDEX_MAPS_API_KEY:-}
         VITE_YANDEX_MAPS_LANG: ${VITE_YANDEX_MAPS_LANG:-en_US}
     env_file: .env
-    expose: ["80"]
+    expose: ['80']
     networks: [ridex]
 
   # ---------------------------------------------------------------------------
@@ -199,13 +199,13 @@ services:
     image: nginx:1.27-alpine
     container_name: ridex-gateway
     depends_on:
-      api:        { condition: service_started }
-      web:        { condition: service_started }
+      api: { condition: service_started }
+      web: { condition: service_started }
       ws-gateway: { condition: service_started }
-      ingestor:   { condition: service_started }
-      grafana:    { condition: service_started }
+      ingestor: { condition: service_started }
+      grafana: { condition: service_started }
     ports:
-      - "80:80"
+      - '80:80'
       # - "443:443"  # uncomment in production with mounted certs
     volumes:
       - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
@@ -218,10 +218,10 @@ services:
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.99.0
     container_name: ridex-otel
-    command: ["--config=/etc/otel-collector-config.yaml"]
+    command: ['--config=/etc/otel-collector-config.yaml']
     volumes:
       - ./infra/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
-    expose: ["4317", "4318"]
+    expose: ['4317', '4318']
     networks: [ridex]
 
   prometheus:
@@ -230,32 +230,32 @@ services:
     volumes:
       - ./infra/otel/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - promdata:/prometheus
-    expose: ["9090"]
+    expose: ['9090']
     networks: [ridex]
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: ridex-postgres-exporter
     environment:
-      DATA_SOURCE_NAME: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: 'postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable'
     depends_on:
       postgres: { condition: service_healthy }
-    expose: ["9187"]
+    expose: ['9187']
     networks: [ridex]
 
   loki:
     image: grafana/loki:2.9.6
     container_name: ridex-loki
-    command: ["-config.file=/etc/loki/local-config.yaml"]
+    command: ['-config.file=/etc/loki/local-config.yaml']
     volumes:
       - lokidata:/loki
-    expose: ["3100"]
+    expose: ['3100']
     networks: [ridex]
 
   promtail:
     image: grafana/promtail:2.9.6
     container_name: ridex-promtail
-    command: ["-config.file=/etc/promtail/config.yaml"]
+    command: ['-config.file=/etc/promtail/config.yaml']
     volumes:
       - ./infra/otel/promtail-config.yaml:/etc/promtail/config.yaml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -267,11 +267,11 @@ services:
   tempo:
     image: grafana/tempo:2.4.1
     container_name: ridex-tempo
-    command: ["-config.file=/etc/tempo.yaml"]
+    command: ['-config.file=/etc/tempo.yaml']
     volumes:
       - ./infra/otel/tempo.yaml:/etc/tempo.yaml:ro
       - tempodata:/var/tempo
-    expose: ["3200", "4317"]
+    expose: ['3200', '4317']
     networks: [ridex]
 
   grafana:
@@ -280,14 +280,14 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ENABLED: 'true'
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost/grafana/}
-      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
     volumes:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./infra/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
       - grafanadata:/var/lib/grafana
-    expose: ["3000"]
+    expose: ['3000']
     networks: [ridex]
 
 networks:

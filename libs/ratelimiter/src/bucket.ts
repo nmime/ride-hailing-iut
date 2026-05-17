@@ -83,9 +83,7 @@ export class TokenBucket {
       // Not enough tokens. Compute when the next whole token will be ready.
       const deficit = 1 - refilled;
       const retryAfterMs =
-        this.refillPerMs > 0
-          ? Math.ceil(deficit / this.refillPerMs)
-          : Number.POSITIVE_INFINITY;
+        this.refillPerMs > 0 ? Math.ceil(deficit / this.refillPerMs) : Number.POSITIVE_INFINITY;
       return {
         next: { tokens: refilled, lastRefillMs: nowMs },
         allowed: false,
@@ -102,7 +100,11 @@ export class TokenBucket {
   }
 
   /** Capacity getter, exposed for /metrics. */
-  get capacity() { return this.burst; }
+  get capacity() {
+    return this.burst;
+  }
   /** Refill rate getter, exposed for /metrics. */
-  get refillRate() { return this.refillPerMs * 1000; }
+  get refillRate() {
+    return this.refillPerMs * 1000;
+  }
 }

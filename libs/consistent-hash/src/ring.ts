@@ -49,8 +49,8 @@ export interface RingOptions {
 }
 
 interface VNode {
-  hash: number;     // position on the ring
-  nodeId: string;   // owning real node
+  hash: number; // position on the ring
+  nodeId: string; // owning real node
 }
 
 export class ConsistentHashRing {

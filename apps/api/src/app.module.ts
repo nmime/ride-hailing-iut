@@ -26,18 +26,25 @@ import { VehiclesModule } from './vehicles/vehicles.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TerminusModule,
     // shared infra
-    DbModule, RedisModule, KafkaModule,
+    DbModule,
+    RedisModule,
+    KafkaModule,
     // observability + cross-cutting
-    MetricsModule, RateLimitModule,
+    MetricsModule,
+    RateLimitModule,
     // domain
-    AuthModule, UsersModule, VehiclesModule,
-    TripsModule, DriversModule, AdminModule,
+    AuthModule,
+    UsersModule,
+    VehiclesModule,
+    TripsModule,
+    DriversModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [
-    { provide: APP_GUARD,        useClass: RateLimitGuard },
-    { provide: APP_INTERCEPTOR,  useClass: HttpMetricsInterceptor },
-    { provide: APP_FILTER,       useClass: ErrorFilter },
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+    { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
+    { provide: APP_FILTER, useClass: ErrorFilter },
   ],
 })
 export class AppModule {}

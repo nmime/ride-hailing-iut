@@ -5,7 +5,9 @@ function fakeClock() {
   let t = 1_700_000_000_000;
   return {
     now: () => t,
-    advance: (ms: number) => { t += ms; },
+    advance: (ms: number) => {
+      t += ms;
+    },
   };
 }
 
@@ -44,7 +46,7 @@ describe('TokenBucket (in-memory)', () => {
     const clock = fakeClock();
     const b = new TokenBucket({
       burst: 2,
-      refillPerSecond: 5,        // 1 token every 200 ms
+      refillPerSecond: 5, // 1 token every 200 ms
       store: new InMemoryTokenBucketStore(),
       now: clock.now,
     });
@@ -55,7 +57,7 @@ describe('TokenBucket (in-memory)', () => {
     expect((await b.take('u')).allowed).toBe(true);
     clock.advance(199);
     expect((await b.take('u')).allowed).toBe(false);
-    clock.advance(1);            // total elapsed: 200 ms since last consume
+    clock.advance(1); // total elapsed: 200 ms since last consume
     expect((await b.take('u')).allowed).toBe(true);
   });
 
@@ -68,7 +70,7 @@ describe('TokenBucket (in-memory)', () => {
       now: clock.now,
     });
     await b.take('u');
-    clock.advance(60_000);       // an hour of refill credit
+    clock.advance(60_000); // an hour of refill credit
     // First request after the long pause: bucket should be at burst-1 = 2.
     const after = await b.take('u');
     expect(after.allowed).toBe(true);

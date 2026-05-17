@@ -39,7 +39,9 @@ export default function DriverPage() {
   const watchId = useRef<number | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => { posRef.current = pos; }, [pos]);
+  useEffect(() => {
+    posRef.current = pos;
+  }, [pos]);
 
   // Sync displayed coords back to text fields whenever pos changes from
   // a non-text source (geolocation watch, arrow pad). The user's typing
@@ -88,7 +90,10 @@ export default function DriverPage() {
 
     void send();
     const timer = window.setInterval(send, 5000);
-    return () => { cancelled = true; clearInterval(timer); };
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [online]);
 
   async function toggleOnline() {
@@ -117,7 +122,14 @@ export default function DriverPage() {
 
   const mapPos = useDebouncedValue(pos, 220);
   const driverMarkers = useMemo<RideMapMarker[]>(
-    () => [{ id: 'driver', label: online ? 'Online driver' : 'Driver', position: mapPos, tone: 'driver' }],
+    () => [
+      {
+        id: 'driver',
+        label: online ? 'Online driver' : 'Driver',
+        position: mapPos,
+        tone: 'driver',
+      },
+    ],
     [online, mapPos],
   );
 
@@ -128,13 +140,20 @@ export default function DriverPage() {
           <div>
             <p className="eyebrow">Driver cockpit</p>
             <h1>Drive mode</h1>
-            <p>Broadcast verified location, inspect the live map, and nudge coordinates during demos without leaving the cockpit.</p>
+            <p>
+              Broadcast verified location, inspect the live map, and nudge coordinates during demos
+              without leaving the cockpit.
+            </p>
           </div>
           <div className={online ? 'driver-live-panel online' : 'driver-live-panel'}>
             <div>
               <span className="driver-live-kicker">Availability</span>
               <strong>{online ? 'Online and broadcasting' : 'Offline standby'}</strong>
-              <p>{lastSentAt ? `Last ingest ${lastSentAt.toLocaleTimeString()}` : 'Location has not been sent yet.'}</p>
+              <p>
+                {lastSentAt
+                  ? `Last ingest ${lastSentAt.toLocaleTimeString()}`
+                  : 'Location has not been sent yet.'}
+              </p>
             </div>
             <button
               type="button"
@@ -149,14 +168,20 @@ export default function DriverPage() {
           </div>
         </section>
 
-        {err && <div className="error" role="alert">{err}</div>}
+        {err && (
+          <div className="error" role="alert">
+            {err}
+          </div>
+        )}
 
         <section className="driver-cockpit-grid">
           <div className="driver-map-panel">
             <RideMap center={mapPos} zoom={14} markers={driverMarkers} />
             <div className="map-floating-panel">
               <span>Current position</span>
-              <strong>{pos[0].toFixed(5)}, {pos[1].toFixed(5)}</strong>
+              <strong>
+                {pos[0].toFixed(5)}, {pos[1].toFixed(5)}
+              </strong>
             </div>
           </div>
 
@@ -164,7 +189,9 @@ export default function DriverPage() {
             <section className="driver-control-section">
               <div className="card-heading">
                 <h2>Availability</h2>
-                <span className={online ? 'pill success' : 'pill'}>{online ? 'Broadcasting' : 'Paused'}</span>
+                <span className={online ? 'pill success' : 'pill'}>
+                  {online ? 'Broadcasting' : 'Paused'}
+                </span>
               </div>
               <div className="driver-status-row">
                 <div className="driver-status-indicator" aria-hidden="true">
@@ -172,7 +199,11 @@ export default function DriverPage() {
                 </div>
                 <div>
                   <strong>{online ? 'Live ingest active' : 'Ready to go online'}</strong>
-                  <p>{sending ? 'Sending location...' : 'Pings are sent every five seconds while online.'}</p>
+                  <p>
+                    {sending
+                      ? 'Sending location...'
+                      : 'Pings are sent every five seconds while online.'}
+                  </p>
                 </div>
               </div>
               <div className="driver-stat-grid">
@@ -202,7 +233,9 @@ export default function DriverPage() {
             <section className="driver-control-section">
               <div className="card-heading">
                 <h2>Manual positioning</h2>
-                <span className={hasYandexMapsKey() ? 'pill success' : 'pill'}>{hasYandexMapsKey() ? 'Yandex ready' : 'Tashkent'}</span>
+                <span className={hasYandexMapsKey() ? 'pill success' : 'pill'}>
+                  {hasYandexMapsKey() ? 'Yandex ready' : 'Tashkent'}
+                </span>
               </div>
               <div className="grid-2">
                 <label htmlFor="driver-lat">
@@ -214,7 +247,8 @@ export default function DriverPage() {
                     onChange={(event) => {
                       setLatText(event.target.value);
                       const next = parseDraftCoordinate(event.target.value);
-                      if (next !== null && next >= -90 && next <= 90) setPos(([, lon]) => [next, lon]);
+                      if (next !== null && next >= -90 && next <= 90)
+                        setPos(([, lon]) => [next, lon]);
                     }}
                     onBlur={() => setLatText(pos[0].toFixed(6))}
                   />
@@ -228,22 +262,50 @@ export default function DriverPage() {
                     onChange={(event) => {
                       setLonText(event.target.value);
                       const next = parseDraftCoordinate(event.target.value);
-                      if (next !== null && next >= -180 && next <= 180) setPos(([lat]) => [lat, next]);
+                      if (next !== null && next >= -180 && next <= 180)
+                        setPos(([lat]) => [lat, next]);
                     }}
                     onBlur={() => setLonText(pos[1].toFixed(6))}
                   />
                 </label>
               </div>
               <div className="direction-pad" aria-label="Move driver location">
-                <button className="btn square" onClick={() => move(STEP, 0)} aria-label="Move north">↑</button>
-                <button className="btn square" onClick={() => move(0, -STEP)} aria-label="Move west">←</button>
-                <button className="btn square" onClick={() => move(-STEP, 0)} aria-label="Move south">↓</button>
-                <button className="btn square" onClick={() => move(0, STEP)} aria-label="Move east">→</button>
+                <button
+                  className="btn square"
+                  onClick={() => move(STEP, 0)}
+                  aria-label="Move north"
+                >
+                  ↑
+                </button>
+                <button
+                  className="btn square"
+                  onClick={() => move(0, -STEP)}
+                  aria-label="Move west"
+                >
+                  ←
+                </button>
+                <button
+                  className="btn square"
+                  onClick={() => move(-STEP, 0)}
+                  aria-label="Move south"
+                >
+                  ↓
+                </button>
+                <button className="btn square" onClick={() => move(0, STEP)} aria-label="Move east">
+                  →
+                </button>
               </div>
               <div className="route-card-grid compact">
-                <a className="route-card accent" href={yandexPointUrl(pos)} target="_blank" rel="noreferrer">
+                <a
+                  className="route-card accent"
+                  href={yandexPointUrl(pos)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <span>Yandex point</span>
-                  <strong>{pos[0].toFixed(4)}, {pos[1].toFixed(4)}</strong>
+                  <strong>
+                    {pos[0].toFixed(4)}, {pos[1].toFixed(4)}
+                  </strong>
                 </a>
               </div>
             </section>

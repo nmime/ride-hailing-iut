@@ -19,9 +19,11 @@ const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter({
     url: `${requiredEnv('OTEL_EXPORTER_OTLP_ENDPOINT')}/v1/traces`,
   }),
-  instrumentations: [getNodeAutoInstrumentations({
-    '@opentelemetry/instrumentation-fs': { enabled: false }, // noisy
-  })],
+  instrumentations: [
+    getNodeAutoInstrumentations({
+      '@opentelemetry/instrumentation-fs': { enabled: false }, // noisy
+    }),
+  ],
 });
 
 sdk.start();

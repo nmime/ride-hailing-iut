@@ -20,10 +20,7 @@ import { ComputeFn, TokenBucketStore } from './store';
  */
 
 interface RedisLike {
-  defineCommand?(
-    name: string,
-    def: { numberOfKeys: number; lua: string },
-  ): unknown;
+  defineCommand?(name: string, def: { numberOfKeys: number; lua: string }): unknown;
   evalsha?(...args: unknown[]): Promise<unknown>;
   // ioredis decorates the client with the dynamically-defined command
   // method; we reach for it via index access at call time.
@@ -106,11 +103,7 @@ export class RedisTokenBucketStore implements TokenBucketStore {
           cost: number,
         ) => Promise<[number, number, string]>;
       }
-    ).ridexRateLimit(fullKey, nowMs, this.burst, this.refillPerMs, 1)) as [
-      number,
-      number,
-      string,
-    ];
+    ).ridexRateLimit(fullKey, nowMs, this.burst, this.refillPerMs, 1)) as [number, number, string];
 
     const [allowed, retryAfterMs, tokensStr] = result;
     const tokens = Number(tokensStr);

@@ -9,7 +9,12 @@ import { useToast } from '../hooks/useToast';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const TASHKENT: [number, number] = [41.311, 69.279];
-const TERMINAL_STATUSES = new Set(['completed', 'cancelled_by_rider', 'cancelled_by_driver', 'expired']);
+const TERMINAL_STATUSES = new Set([
+  'completed',
+  'cancelled_by_rider',
+  'cancelled_by_driver',
+  'expired',
+]);
 
 function toCoordinate(value: string, fallback: number) {
   const trimmed = value.trim();
@@ -88,14 +93,20 @@ function yandexPointUrl(position: [number, number], zoom = 16) {
 function lastSeenText(ts?: number) {
   if (!ts) return 'Live location received';
   const observed = new Date(ts);
-  return Number.isNaN(observed.getTime()) ? 'Live location received' : `Last seen ${observed.toLocaleTimeString()}`;
+  return Number.isNaN(observed.getTime())
+    ? 'Live location received'
+    : `Last seen ${observed.toLocaleTimeString()}`;
 }
 
 const STORAGE_TRIP_ID = 'ridex_active_trip_id';
 
 export default function RiderPage() {
   const [tripId, setTripId] = useState<string | null>(() => {
-    try { return localStorage.getItem(STORAGE_TRIP_ID); } catch { return null; }
+    try {
+      return localStorage.getItem(STORAGE_TRIP_ID);
+    } catch {
+      return null;
+    }
   });
   const [activeTrip, setActiveTrip] = useState<TripSummary | null>(null);
   const [pickupLat, setPickupLat] = useState('41.311');
@@ -116,7 +127,9 @@ export default function RiderPage() {
     try {
       if (tripId) localStorage.setItem(STORAGE_TRIP_ID, tripId);
       else localStorage.removeItem(STORAGE_TRIP_ID);
-    } catch { /* storage unavailable */ }
+    } catch {
+      /* storage unavailable */
+    }
   }, [tripId]);
 
   useEffect(() => {
@@ -145,7 +158,9 @@ export default function RiderPage() {
       }
     }
     void restore();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [tripId]);
 
   const handledEvents = useRef(0);
@@ -160,9 +175,12 @@ export default function RiderPage() {
         toast('Trip completed — rate your driver', 'success');
         const id = tripId;
         if (id) {
-          api.getTrip(id)
+          api
+            .getTrip(id)
             .then((trip) => setPendingRating(trip))
-            .catch(() => { /* user can rate from history */ });
+            .catch(() => {
+              /* user can rate from history */
+            });
         }
         setActiveTrip(null);
         setTripId(null);
@@ -173,15 +191,29 @@ export default function RiderPage() {
         setTripId(null);
         setHistoryKey((k) => k + 1);
       } else if (type.includes('matched') || type.includes('accepted')) {
-        setActiveTrip((trip) => mergeActiveTrip(trip, tripId, {
-          status: type.includes('accepted') ? 'accepted' : 'matched',
-          ...(eventDriverId ? { driver_id: eventDriverId } : {}),
-        }));
-        if (tripId) api.getTrip(tripId).then(setActiveTrip).catch(() => { /* event already updated visible state */ });
+        setActiveTrip((trip) =>
+          mergeActiveTrip(trip, tripId, {
+            status: type.includes('accepted') ? 'accepted' : 'matched',
+            ...(eventDriverId ? { driver_id: eventDriverId } : {}),
+          }),
+        );
+        if (tripId)
+          api
+            .getTrip(tripId)
+            .then(setActiveTrip)
+            .catch(() => {
+              /* event already updated visible state */
+            });
         toast('Driver matched', 'success');
       } else if (type.includes('started') || type.includes('in_progress')) {
         setActiveTrip((trip) => mergeActiveTrip(trip, tripId, { status: 'in_progress' }));
-        if (tripId) api.getTrip(tripId).then(setActiveTrip).catch(() => { /* event already updated visible state */ });
+        if (tripId)
+          api
+            .getTrip(tripId)
+            .then(setActiveTrip)
+            .catch(() => {
+              /* event already updated visible state */
+            });
         toast('Trip started', 'info');
       }
     }
@@ -201,26 +233,33 @@ export default function RiderPage() {
 
   // Map effects (re-center, marker re-build) are throttled to settled
   // input so typing stays smooth.
-  const mapPickup  = useDebouncedValue(pickup,  220);
+  const mapPickup = useDebouncedValue(pickup, 220);
   const mapDropoff = useDebouncedValue(dropoff, 220);
   const distanceKm = useMemo(() => estimatedDistanceKm(pickup, dropoff), [pickup, dropoff]);
   const latestEvent = events.length > 0 ? events[events.length - 1] : null;
-  const mapMarkers = useMemo<RideMapMarker[]>(() => [
-    { id: 'pickup',  label: 'Pickup',  position: mapPickup,  tone: 'pickup' },
-    { id: 'dropoff', label: 'Dropoff', position: mapDropoff, tone: 'dropoff' },
-    ...(nearbyDrivers ?? []).map((driver) => ({
-      id: driver.driver_id,
-      label: `Driver ${driver.driver_id.slice(0, 4)}`,
-      position: [driver.lat, driver.lon] as [number, number],
-      tone: 'nearby' as const,
-    })),
-    ...(driverLocation ? [{
-      id: `matched-${driverLocation.driver_id}`,
-      label: `Matched driver ${driverLocation.driver_id.slice(0, 4)}`,
-      position: [driverLocation.lat, driverLocation.lon] as [number, number],
-      tone: 'driver' as const,
-    }] : []),
-  ], [mapPickup, mapDropoff, nearbyDrivers, driverLocation]);
+  const mapMarkers = useMemo<RideMapMarker[]>(
+    () => [
+      { id: 'pickup', label: 'Pickup', position: mapPickup, tone: 'pickup' },
+      { id: 'dropoff', label: 'Dropoff', position: mapDropoff, tone: 'dropoff' },
+      ...(nearbyDrivers ?? []).map((driver) => ({
+        id: driver.driver_id,
+        label: `Driver ${driver.driver_id.slice(0, 4)}`,
+        position: [driver.lat, driver.lon] as [number, number],
+        tone: 'nearby' as const,
+      })),
+      ...(driverLocation
+        ? [
+            {
+              id: `matched-${driverLocation.driver_id}`,
+              label: `Matched driver ${driverLocation.driver_id.slice(0, 4)}`,
+              position: [driverLocation.lat, driverLocation.lon] as [number, number],
+              tone: 'driver' as const,
+            },
+          ]
+        : []),
+    ],
+    [mapPickup, mapDropoff, nearbyDrivers, driverLocation],
+  );
   const routeUrl = useMemo(() => yandexRouteUrl(pickup, dropoff), [pickup, dropoff]);
   const pickupLatValid = validLat(pickupLat);
   const pickupLonValid = validLon(pickupLon);
@@ -257,7 +296,7 @@ export default function RiderPage() {
     setRequesting(true);
     try {
       const trip = await api.createTrip({
-        pickup:  { lat: pickup[0], lon: pickup[1] },
+        pickup: { lat: pickup[0], lon: pickup[1] },
         dropoff: { lat: dropoff[0], lon: dropoff[1] },
         pickup_address: 'Amir Temur Square',
         dropoff_address: 'Inha University in Tashkent',
@@ -317,7 +356,10 @@ export default function RiderPage() {
           <div>
             <p className="eyebrow">Rider console</p>
             <h1>Book a ride in Tashkent</h1>
-            <p>Set pickup and dropoff coordinates, check live driver coverage, track the matched driver, and subscribe to trip updates.</p>
+            <p>
+              Set pickup and dropoff coordinates, check live driver coverage, track the matched
+              driver, and subscribe to trip updates.
+            </p>
           </div>
           <div className="status-tile">
             <span>Route estimate</span>
@@ -325,7 +367,11 @@ export default function RiderPage() {
           </div>
         </section>
 
-        {err && <div className="error" role="alert">{err}</div>}
+        {err && (
+          <div className="error" role="alert">
+            {err}
+          </div>
+        )}
 
         <section className="workflow-grid">
           <div className="stack">
@@ -340,7 +386,9 @@ export default function RiderPage() {
               <div className="coordinate-card-grid">
                 <section className="coordinate-card pickup" aria-labelledby="pickup-card-title">
                   <div className="coordinate-card-head">
-                    <span className="coordinate-icon" aria-hidden="true">A</span>
+                    <span className="coordinate-icon" aria-hidden="true">
+                      A
+                    </span>
                     <div>
                       <h3 id="pickup-card-title">Pickup point</h3>
                       <p>Where the rider starts. Defaults to Amir Temur Square.</p>
@@ -357,8 +405,14 @@ export default function RiderPage() {
                         aria-invalid={!pickupLatValid}
                         aria-describedby={pickupLatDescription}
                       />
-                      <span id="pickup-lat-help" className="visually-hidden">Pickup latitude must be between -90 and 90.</span>
-                      {!pickupLatValid && <span id="pickup-lat-error" className="visually-hidden">Enter a pickup latitude from -90 to 90.</span>}
+                      <span id="pickup-lat-help" className="visually-hidden">
+                        Pickup latitude must be between -90 and 90.
+                      </span>
+                      {!pickupLatValid && (
+                        <span id="pickup-lat-error" className="visually-hidden">
+                          Enter a pickup latitude from -90 to 90.
+                        </span>
+                      )}
                     </label>
                     <label className={pickupLonValid ? undefined : 'invalid'} htmlFor="pickup-lon">
                       Longitude
@@ -370,23 +424,36 @@ export default function RiderPage() {
                         aria-invalid={!pickupLonValid}
                         aria-describedby={pickupLonDescription}
                       />
-                      <span id="pickup-lon-help" className="visually-hidden">Pickup longitude must be between -180 and 180.</span>
-                      {!pickupLonValid && <span id="pickup-lon-error" className="visually-hidden">Enter a pickup longitude from -180 to 180.</span>}
+                      <span id="pickup-lon-help" className="visually-hidden">
+                        Pickup longitude must be between -180 and 180.
+                      </span>
+                      {!pickupLonValid && (
+                        <span id="pickup-lon-error" className="visually-hidden">
+                          Enter a pickup longitude from -180 to 180.
+                        </span>
+                      )}
                     </label>
                   </div>
-                  <span className="coordinate-summary">{pickup[0].toFixed(4)}, {pickup[1].toFixed(4)}</span>
+                  <span className="coordinate-summary">
+                    {pickup[0].toFixed(4)}, {pickup[1].toFixed(4)}
+                  </span>
                 </section>
 
                 <section className="coordinate-card dropoff" aria-labelledby="dropoff-card-title">
                   <div className="coordinate-card-head">
-                    <span className="coordinate-icon" aria-hidden="true">B</span>
+                    <span className="coordinate-icon" aria-hidden="true">
+                      B
+                    </span>
                     <div>
                       <h3 id="dropoff-card-title">Dropoff point</h3>
                       <p>Destination for the route estimate. Defaults to IUT.</p>
                     </div>
                   </div>
                   <div className="coordinate-fields">
-                    <label className={dropoffLatValid ? undefined : 'invalid'} htmlFor="dropoff-lat">
+                    <label
+                      className={dropoffLatValid ? undefined : 'invalid'}
+                      htmlFor="dropoff-lat"
+                    >
                       Latitude
                       <input
                         id="dropoff-lat"
@@ -396,10 +463,19 @@ export default function RiderPage() {
                         aria-invalid={!dropoffLatValid}
                         aria-describedby={dropoffLatDescription}
                       />
-                      <span id="dropoff-lat-help" className="visually-hidden">Dropoff latitude must be between -90 and 90.</span>
-                      {!dropoffLatValid && <span id="dropoff-lat-error" className="visually-hidden">Enter a dropoff latitude from -90 to 90.</span>}
+                      <span id="dropoff-lat-help" className="visually-hidden">
+                        Dropoff latitude must be between -90 and 90.
+                      </span>
+                      {!dropoffLatValid && (
+                        <span id="dropoff-lat-error" className="visually-hidden">
+                          Enter a dropoff latitude from -90 to 90.
+                        </span>
+                      )}
                     </label>
-                    <label className={dropoffLonValid ? undefined : 'invalid'} htmlFor="dropoff-lon">
+                    <label
+                      className={dropoffLonValid ? undefined : 'invalid'}
+                      htmlFor="dropoff-lon"
+                    >
                       Longitude
                       <input
                         id="dropoff-lon"
@@ -409,45 +485,98 @@ export default function RiderPage() {
                         aria-invalid={!dropoffLonValid}
                         aria-describedby={dropoffLonDescription}
                       />
-                      <span id="dropoff-lon-help" className="visually-hidden">Dropoff longitude must be between -180 and 180.</span>
-                      {!dropoffLonValid && <span id="dropoff-lon-error" className="visually-hidden">Enter a dropoff longitude from -180 to 180.</span>}
+                      <span id="dropoff-lon-help" className="visually-hidden">
+                        Dropoff longitude must be between -180 and 180.
+                      </span>
+                      {!dropoffLonValid && (
+                        <span id="dropoff-lon-error" className="visually-hidden">
+                          Enter a dropoff longitude from -180 to 180.
+                        </span>
+                      )}
                     </label>
                   </div>
-                  <span className="coordinate-summary">{dropoff[0].toFixed(4)}, {dropoff[1].toFixed(4)}</span>
+                  <span className="coordinate-summary">
+                    {dropoff[0].toFixed(4)}, {dropoff[1].toFixed(4)}
+                  </span>
                 </section>
               </div>
-              <p id={coordinateHintId} className="form-hint">Use WGS-84 coordinates: latitude −90..90, longitude −180..180.</p>
+              <p id={coordinateHintId} className="form-hint">
+                Use WGS-84 coordinates: latitude −90..90, longitude −180..180.
+              </p>
               {!coordinatesValid && (
-                <p id={coordinateErrorId} className="form-hint warning">Fix highlighted coordinates before requesting a ride or checking coverage.</p>
+                <p id={coordinateErrorId} className="form-hint warning">
+                  Fix highlighted coordinates before requesting a ride or checking coverage.
+                </p>
               )}
               <div className="button-row trip-actions">
-                <button className="btn primary" onClick={requestRide} disabled={!!tripId || requesting || !coordinatesValid} aria-busy={requesting}>
-                  {requesting ? 'Requesting...' : tripId ? `Trip ${tripId.slice(0, 8)}` : 'Request ride'}
+                <button
+                  className="btn primary"
+                  onClick={requestRide}
+                  disabled={!!tripId || requesting || !coordinatesValid}
+                  aria-busy={requesting}
+                >
+                  {requesting
+                    ? 'Requesting...'
+                    : tripId
+                      ? `Trip ${tripId.slice(0, 8)}`
+                      : 'Request ride'}
                 </button>
-                <button className="btn secondary" onClick={checkCoverage} disabled={checkingCoverage || !pickupLatValid || !pickupLonValid} aria-busy={checkingCoverage}>
+                <button
+                  className="btn secondary"
+                  onClick={checkCoverage}
+                  disabled={checkingCoverage || !pickupLatValid || !pickupLonValid}
+                  aria-busy={checkingCoverage}
+                >
                   {checkingCoverage ? 'Checking...' : 'Check coverage'}
                 </button>
-                <button className="btn ghost" type="button" onClick={fillDemoRoute} disabled={!!tripId}>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={fillDemoRoute}
+                  disabled={!!tripId}
+                >
                   Demo route
                 </button>
-                <a className="btn ghost" href={routeUrl} target="_blank" rel="noreferrer">Yandex route</a>
-                {tripId && <button className="btn ghost" onClick={cancelRide}>Cancel trip</button>}
+                <a className="btn ghost" href={routeUrl} target="_blank" rel="noreferrer">
+                  Yandex route
+                </a>
+                {tripId && (
+                  <button className="btn ghost" onClick={cancelRide}>
+                    Cancel trip
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="card stack">
               <div className="card-heading">
                 <h2>Yandex cards</h2>
-                <span className={hasYandexMapsKey() ? 'pill success' : 'pill'}>{hasYandexMapsKey() ? 'Map provider ready' : 'Route links ready'}</span>
+                <span className={hasYandexMapsKey() ? 'pill success' : 'pill'}>
+                  {hasYandexMapsKey() ? 'Map provider ready' : 'Route links ready'}
+                </span>
               </div>
               <div className="route-card-grid">
-                <a className="route-card" href={yandexPointUrl(pickup)} target="_blank" rel="noreferrer">
+                <a
+                  className="route-card"
+                  href={yandexPointUrl(pickup)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <span>Pickup</span>
-                  <strong>{pickup[0].toFixed(4)}, {pickup[1].toFixed(4)}</strong>
+                  <strong>
+                    {pickup[0].toFixed(4)}, {pickup[1].toFixed(4)}
+                  </strong>
                 </a>
-                <a className="route-card" href={yandexPointUrl(dropoff)} target="_blank" rel="noreferrer">
+                <a
+                  className="route-card"
+                  href={yandexPointUrl(dropoff)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   <span>Dropoff</span>
-                  <strong>{dropoff[0].toFixed(4)}, {dropoff[1].toFixed(4)}</strong>
+                  <strong>
+                    {dropoff[0].toFixed(4)}, {dropoff[1].toFixed(4)}
+                  </strong>
                 </a>
                 <a className="route-card accent" href={routeUrl} target="_blank" rel="noreferrer">
                   <span>Route</span>
@@ -459,7 +588,9 @@ export default function RiderPage() {
             <div className="card stack">
               <div className="card-heading">
                 <h2>Live status</h2>
-                <span className={latestEvent ? 'pill success' : 'pill'}>{latestEvent ? eventLabel(latestEvent) : activeTrip?.status ?? 'Waiting'}</span>
+                <span className={latestEvent ? 'pill success' : 'pill'}>
+                  {latestEvent ? eventLabel(latestEvent) : (activeTrip?.status ?? 'Waiting')}
+                </span>
               </div>
               <div className="metric-grid">
                 <div>
@@ -472,7 +603,9 @@ export default function RiderPage() {
                 </div>
                 <div>
                   <span>Driver pin</span>
-                  <strong>{driverLocation ? 'Live' : activeDriverId ? 'Subscribed' : 'Pending'}</strong>
+                  <strong>
+                    {driverLocation ? 'Live' : activeDriverId ? 'Subscribed' : 'Pending'}
+                  </strong>
                 </div>
                 <div>
                   <span>Events</span>
@@ -493,7 +626,13 @@ export default function RiderPage() {
                     const position: [number, number] = [driver.lat, driver.lon];
                     const driverDistanceKm = estimatedDistanceKm(pickup, position);
                     return (
-                      <a className="driver-card" href={yandexPointUrl(position)} target="_blank" rel="noreferrer" key={driver.driver_id}>
+                      <a
+                        className="driver-card"
+                        href={yandexPointUrl(position)}
+                        target="_blank"
+                        rel="noreferrer"
+                        key={driver.driver_id}
+                      >
                         <span>{driver.driver_id.slice(0, 8)}</span>
                         <strong>{driverDistanceKm.toFixed(1)} km away</strong>
                       </a>
@@ -521,10 +660,7 @@ export default function RiderPage() {
           </div>
         </section>
 
-        <TripHistory
-          refreshKey={historyKey}
-          onRate={(trip) => setPendingRating(trip)}
-        />
+        <TripHistory refreshKey={historyKey} onRate={(trip) => setPendingRating(trip)} />
 
         {pendingRating && (
           <RatingDialog

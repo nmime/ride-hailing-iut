@@ -1,6 +1,4 @@
-import {
-  createContext, ReactNode, useCallback, useContext, useMemo, useState,
-} from 'react';
+import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 
 type ToastTone = 'success' | 'error' | 'info';
 
@@ -46,7 +44,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast() {
   const ctx = useContext(Ctx);
   if (!ctx) {
-    return { toast: (_msg: string, _tone?: ToastTone) => { /* no-op outside provider (e.g. SSR) */ } };
+    return {
+      toast: (_msg: string, _tone?: ToastTone) => {
+        /* no-op outside provider (e.g. SSR) */
+      },
+    };
   }
   return ctx;
 }

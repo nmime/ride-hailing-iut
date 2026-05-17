@@ -12,7 +12,8 @@ export function TripHistory({ refreshKey, onRate }: TripHistoryProps) {
   const [err, setErr] = useState<string | null>(null);
 
   async function refresh() {
-    setLoading(true); setErr(null);
+    setLoading(true);
+    setErr(null);
     try {
       setTrips(await api.listTrips({ limit: 10 }));
     } catch (e) {
@@ -22,7 +23,9 @@ export function TripHistory({ refreshKey, onRate }: TripHistoryProps) {
     }
   }
 
-  useEffect(() => { void refresh(); }, [refreshKey]);
+  useEffect(() => {
+    void refresh();
+  }, [refreshKey]);
 
   return (
     <div className="card stack">
@@ -32,7 +35,11 @@ export function TripHistory({ refreshKey, onRate }: TripHistoryProps) {
           {loading ? 'Loading...' : 'Refresh'}
         </button>
       </div>
-      {err && <div className="error" role="alert">{err}</div>}
+      {err && (
+        <div className="error" role="alert">
+          {err}
+        </div>
+      )}
       {trips.length === 0 ? (
         <p className="muted">{loading ? 'Loading recent trips...' : 'No trips yet.'}</p>
       ) : (
@@ -40,14 +47,18 @@ export function TripHistory({ refreshKey, onRate }: TripHistoryProps) {
           {trips.map((t) => (
             <div className="trip-history-row" key={t.id}>
               <div>
-                <strong>{t.pickup_address ?? 'Pickup'} → {t.dropoff_address ?? 'Dropoff'}</strong>
+                <strong>
+                  {t.pickup_address ?? 'Pickup'} → {t.dropoff_address ?? 'Dropoff'}
+                </strong>
                 <span className="muted">
                   {new Date(t.requested_at).toLocaleString()} · {t.status}
                 </span>
               </div>
               <div className="trip-history-side">
                 {t.fare_total !== null && t.fare_total !== undefined ? (
-                  <strong>{t.currency ?? '$'} {Number(t.fare_total).toFixed(2)}</strong>
+                  <strong>
+                    {t.currency ?? '$'} {Number(t.fare_total).toFixed(2)}
+                  </strong>
                 ) : (
                   <span className="muted">No fare yet</span>
                 )}

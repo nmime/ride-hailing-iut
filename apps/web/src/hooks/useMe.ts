@@ -45,7 +45,10 @@ export function useMe(): UseMeResult {
       if (!auth.getSession()) setMe(null);
       else void refresh();
     });
-    return () => { cancelled = true; off(); };
+    return () => {
+      cancelled = true;
+      off();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

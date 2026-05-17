@@ -1,6 +1,4 @@
-import {
-  ConflictException, Inject, Injectable, UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Pool } from 'pg';
 import argon2 from 'argon2';
@@ -9,7 +7,7 @@ import { PG_POOL } from '../db/db.module';
 import { SignupDto, LoginDto } from './dto';
 
 export interface JwtPayload {
-  sub: string;        // user id
+  sub: string; // user id
   role: 'rider' | 'driver' | 'admin';
 }
 
@@ -23,9 +21,10 @@ export class AuthService {
   /** Register a new user. Riders go straight in; drivers also provide
    *  licence details so the driver profile is complete from day one. */
   async signup(dto: SignupDto) {
-    const exists = await this.db.query(
-      `SELECT 1 FROM users WHERE email = $1 OR phone = $2`, [dto.email, dto.phone],
-    );
+    const exists = await this.db.query(`SELECT 1 FROM users WHERE email = $1 OR phone = $2`, [
+      dto.email,
+      dto.phone,
+    ]);
     if (exists.rowCount! > 0) throw new ConflictException('email or phone in use');
 
     const password_hash = await argon2.hash(dto.password, { type: argon2.argon2id });
@@ -63,7 +62,8 @@ export class AuthService {
   async login(dto: LoginDto) {
     const { rows } = await this.db.query(
       `SELECT id, role, password_hash, is_active
-         FROM users WHERE phone = $1`, [dto.phone],
+         FROM users WHERE phone = $1`,
+      [dto.phone],
     );
     const user = rows[0];
     if (!user || !user.is_active) throw new UnauthorizedException('bad credentials');

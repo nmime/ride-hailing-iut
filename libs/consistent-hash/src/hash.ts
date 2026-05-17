@@ -52,10 +52,10 @@ export function murmur3_32(input: string, seed = 0): number {
   // Body: process 4-byte blocks.
   while (i + 4 <= len) {
     let k =
-        (input.charCodeAt(i)     & 0xff)        |
-       ((input.charCodeAt(i + 1) & 0xff) << 8)  |
-       ((input.charCodeAt(i + 2) & 0xff) << 16) |
-       ((input.charCodeAt(i + 3) & 0xff) << 24);
+      (input.charCodeAt(i) & 0xff) |
+      ((input.charCodeAt(i + 1) & 0xff) << 8) |
+      ((input.charCodeAt(i + 2) & 0xff) << 16) |
+      ((input.charCodeAt(i + 3) & 0xff) << 24);
 
     k = Math.imul(k, C1);
     k = (k << 15) | (k >>> 17); // ROTL32(k, 15)
@@ -71,8 +71,12 @@ export function murmur3_32(input: string, seed = 0): number {
   // Tail: 1, 2, or 3 leftover bytes — fall-through is intentional.
   let k = 0;
   switch (len - i) {
-    case 3: k ^= (input.charCodeAt(i + 2) & 0xff) << 16; // fall-through
-    case 2: k ^= (input.charCodeAt(i + 1) & 0xff) << 8;  // fall-through
+    case 3:
+      k ^= (input.charCodeAt(i + 2) & 0xff) << 16;
+    // falls through
+    case 2:
+      k ^= (input.charCodeAt(i + 1) & 0xff) << 8;
+    // falls through
     case 1:
       k ^= input.charCodeAt(i) & 0xff;
       k = Math.imul(k, C1);

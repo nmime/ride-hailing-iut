@@ -20,7 +20,9 @@ export function VehiclesPanel() {
   const [busy, setBusy] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => { void refresh(); }, []);
+  useEffect(() => {
+    void refresh();
+  }, []);
 
   async function refresh() {
     setLoading(true);
@@ -87,7 +89,11 @@ export function VehiclesPanel() {
         <span className="pill">{list.length} registered</span>
       </div>
 
-      {err && <div className="error" role="alert">{err}</div>}
+      {err && (
+        <div className="error" role="alert">
+          {err}
+        </div>
+      )}
 
       {loading ? (
         <p className="muted">Loading vehicles...</p>
@@ -99,7 +105,9 @@ export function VehiclesPanel() {
             <div className={v.is_active ? 'vehicle-row active' : 'vehicle-row'} key={v.id}>
               <div>
                 <strong>{v.plate}</strong>
-                <span>{v.make} {v.model} · {v.year} · {v.color}</span>
+                <span>
+                  {v.make} {v.model} · {v.year} · {v.color}
+                </span>
                 <small>Capacity {v.capacity}</small>
               </div>
               <div className="vehicle-actions">
@@ -136,7 +144,8 @@ export function VehiclesPanel() {
             until you choose “Make active”.
           </p>
           <div className="grid-2">
-            <label>Plate
+            <label>
+              Plate
               <input
                 value={draft.plate}
                 onChange={(e) => setDraft({ ...draft, plate: e.target.value.toUpperCase() })}
@@ -145,7 +154,8 @@ export function VehiclesPanel() {
                 maxLength={16}
               />
             </label>
-            <label>Color
+            <label>
+              Color
               <input
                 value={draft.color}
                 onChange={(e) => setDraft({ ...draft, color: e.target.value })}
@@ -153,7 +163,8 @@ export function VehiclesPanel() {
                 maxLength={32}
               />
             </label>
-            <label>Make
+            <label>
+              Make
               <input
                 value={draft.make}
                 onChange={(e) => setDraft({ ...draft, make: e.target.value })}
@@ -161,7 +172,8 @@ export function VehiclesPanel() {
                 maxLength={64}
               />
             </label>
-            <label>Model
+            <label>
+              Model
               <input
                 value={draft.model}
                 onChange={(e) => setDraft({ ...draft, model: e.target.value })}
@@ -169,7 +181,8 @@ export function VehiclesPanel() {
                 maxLength={64}
               />
             </label>
-            <label>Year
+            <label>
+              Year
               <input
                 type="number"
                 value={draft.year}
@@ -179,7 +192,8 @@ export function VehiclesPanel() {
                 required
               />
             </label>
-            <label>Capacity
+            <label>
+              Capacity
               <input
                 type="number"
                 value={draft.capacity}
@@ -194,7 +208,14 @@ export function VehiclesPanel() {
             <button type="submit" className="btn primary" disabled={busy} aria-busy={busy}>
               {busy ? 'Saving...' : 'Add vehicle'}
             </button>
-            <button type="button" className="btn ghost" onClick={() => { setShowForm(false); setDraft(EMPTY); }}>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => {
+                setShowForm(false);
+                setDraft(EMPTY);
+              }}
+            >
               Cancel
             </button>
           </div>
@@ -204,7 +225,12 @@ export function VehiclesPanel() {
           <button type="button" className="btn secondary" onClick={() => setShowForm(true)}>
             Add vehicle
           </button>
-          <button type="button" className="btn ghost" onClick={() => void refresh()} disabled={loading}>
+          <button
+            type="button"
+            className="btn ghost"
+            onClick={() => void refresh()}
+            disabled={loading}
+          >
             Refresh
           </button>
         </div>

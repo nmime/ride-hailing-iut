@@ -21,7 +21,9 @@ export function requiredNumberEnv(name: string, options: { min?: number; max?: n
   const raw = requiredEnv(name);
   const value = Number(raw);
   if (!Number.isFinite(value)) throw new Error(`${name} must be numeric`);
-  if (options.min !== undefined && value < options.min) throw new Error(`${name} must be >= ${options.min}`);
-  if (options.max !== undefined && value > options.max) throw new Error(`${name} must be <= ${options.max}`);
+  if (options.min !== undefined && value < options.min)
+    throw new Error(`${name} must be >= ${options.min}`);
+  if (options.max !== undefined && value > options.max)
+    throw new Error(`${name} must be <= ${options.max}`);
   return value;
 }

@@ -1,7 +1,19 @@
 import {
-  Module, Inject, Injectable, Controller, Get, Patch, Body, Param, Query,
-  BadRequestException, ForbiddenException, HttpStatus, NotFoundException,
-  ParseUUIDPipe, Req,
+  Module,
+  Inject,
+  Injectable,
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Param,
+  Query,
+  BadRequestException,
+  ForbiddenException,
+  HttpStatus,
+  NotFoundException,
+  ParseUUIDPipe,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import type Redis from 'ioredis';
@@ -34,10 +46,19 @@ class DriversService {
     if (!Number.isFinite(radiusMeters) || radiusMeters <= 0 || radiusMeters > 10_000) {
       throw new BadRequestException('radius_m must be between 1 and 10000');
     }
-    const raw = await this.redis.geosearch(
-      'driver:online', 'FROMLONLAT', lon, lat,
-      'BYRADIUS', radiusMeters, 'm', 'COUNT', 25, 'ASC', 'WITHCOORD',
-    ) as Array<[string, [string, string]]>;
+    const raw = (await this.redis.geosearch(
+      'driver:online',
+      'FROMLONLAT',
+      lon,
+      lat,
+      'BYRADIUS',
+      radiusMeters,
+      'm',
+      'COUNT',
+      25,
+      'ASC',
+      'WITHCOORD',
+    )) as Array<[string, [string, string]]>;
     return raw.map(([driverId, coords]) => ({
       driver_id: driverId,
       lon: Number(coords[0]),
@@ -99,15 +120,11 @@ class DriversController {
   @ApiQuery({ name: 'lon', type: Number, required: true })
   @ApiQuery({ name: 'lat', type: Number, required: true })
   @ApiQuery({ name: 'radius_m', type: Number, required: false })
-  nearby(
-    @Query('lon') lon: string,
-    @Query('lat') lat: string,
-    @Query('radius_m') radius?: string,
-  ) {
+  nearby(@Query('lon') lon: string, @Query('lat') lat: string, @Query('radius_m') radius?: string) {
     return this.drivers.nearby(Number(lon), Number(lat), radius ? Number(radius) : 2000);
   }
 
-  @Roles('driver','admin')
+  @Roles('driver', 'admin')
   @Patch(':id/status')
   setStatus(
     @Param('id', UUID_PIPE) id: string,

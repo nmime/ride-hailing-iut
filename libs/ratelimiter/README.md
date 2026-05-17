@@ -4,8 +4,8 @@ A tiny, well-tested token-bucket rate limiter, used by the `apps/api`
 gateway middleware to throttle abusive clients.
 
 > **References.**
-> Tanenbaum, *Computer Networks* §5.3.4 — "Traffic shaping with the token bucket".
-> Xu, *System Design Interview Vol. 1*, ch. 4 — "Design a rate limiter".
+> Tanenbaum, _Computer Networks_ §5.3.4 — "Traffic shaping with the token bucket".
+> Xu, _System Design Interview Vol. 1_, ch. 4 — "Design a rate limiter".
 
 ## What it is
 
@@ -21,7 +21,7 @@ interface:
   decision, but each pod has its own bucket. Acceptable when only one
   api replica runs, or as a defence-in-depth front of the Redis store.
 - `RedisTokenBucketStore` — atomic via a Lua script, so the two
-  api replicas behind the gateway share the *same* bucket per user.
+  api replicas behind the gateway share the _same_ bucket per user.
   Used in production.
 
 The same algorithm runs in both (the Redis Lua mirrors the JS `compute`
@@ -31,15 +31,11 @@ property tests.
 ## API
 
 ```ts
-import {
-  TokenBucket,
-  InMemoryTokenBucketStore,
-  RedisTokenBucketStore,
-} from '@ridex/ratelimiter';
+import { TokenBucket, InMemoryTokenBucketStore, RedisTokenBucketStore } from '@ridex/ratelimiter';
 
 const bucket = new TokenBucket({
-  burst: 30,                // up to 30 immediate requests
-  refillPerSecond: 10,      // sustained 10 req/s
+  burst: 30, // up to 30 immediate requests
+  refillPerSecond: 10, // sustained 10 req/s
   store: new InMemoryTokenBucketStore(),
 });
 
@@ -66,7 +62,7 @@ if (!decision.allowed) {
 The store is wired to the existing `Redis` connection so two API replicas
 behind the gateway share buckets exactly.
 
-## Why a *second* from-scratch component?
+## Why a _second_ from-scratch component?
 
 The spec accepts any one of the listed components for R11; we shipped
 the consistent-hash ring as the primary, but the matcher's hot path

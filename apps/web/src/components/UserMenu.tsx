@@ -30,28 +30,36 @@ export function UserMenu() {
   if (!session) return null;
 
   const displayName = me?.full_name ?? `${session.role[0].toUpperCase()}${session.role.slice(1)}`;
-  const initials = (me?.full_name ?? session.role)
-    .split(/\s+/)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .slice(0, 2)
-    .join('') || 'R';
+  const initials =
+    (me?.full_name ?? session.role)
+      .split(/\s+/)
+      .map((part) => part[0]?.toUpperCase() ?? '')
+      .slice(0, 2)
+      .join('') || 'R';
 
   return (
     <div className="user-menu" ref={ref}>
       <button
         type="button"
         className="user-menu-trigger"
-        onClick={() => { setOpen((v) => !v); if (!me) void refresh(); }}
+        onClick={() => {
+          setOpen((v) => !v);
+          if (!me) void refresh();
+        }}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls="user-menu-panel"
       >
-        <span className="user-avatar" aria-hidden="true">{initials}</span>
+        <span className="user-avatar" aria-hidden="true">
+          {initials}
+        </span>
         <span className="user-meta">
           <strong>{displayName}</strong>
           <small>{session.role}</small>
         </span>
-        <span className="user-chevron" aria-hidden="true">▾</span>
+        <span className="user-chevron" aria-hidden="true">
+          ▾
+        </span>
       </button>
       {open && (
         <div className="user-menu-pop" id="user-menu-panel">
@@ -74,7 +82,10 @@ export function UserMenu() {
           <button
             type="button"
             className="user-menu-action"
-            onClick={() => { auth.clear(); setOpen(false); }}
+            onClick={() => {
+              auth.clear();
+              setOpen(false);
+            }}
           >
             Sign out
           </button>

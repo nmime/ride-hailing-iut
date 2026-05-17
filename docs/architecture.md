@@ -266,14 +266,14 @@ BPMN: `docs/bpmn/nightly-aggregates.bpmn`.
 
 ## 6. Caching and indexing strategy (R6)
 
-| What | Where | Why | Measured impact |
-|---|---|---|---|
-| Online-driver geo index | Redis GEO `driver:online` | "Who is within 2 km of (x,y)?" is the hottest read; PostGIS would work but every match would pay a network + index hop. Redis stays in sub-ms. | `nearby` p95 fell from 14 ms (PG only) → 0.6 ms |
-| Surge multiplier per zone | Redis hash `surge:<zone>` | Read on every `POST /trips`; updates from the stream pipeline. | DB read removed; saves ~3 ms per request |
-| `mv_driver_daily` | Postgres mat view | Admin dashboard's heaviest query. Refreshed nightly. | Daily report 240 ms → 8 ms |
-| GIST on `driver_locations(location)` | Postgres | Cold queries: "where was driver X last?" | Geographic SELECT 80 ms → 9 ms |
-| GIN trigram on `users(phone)` | Postgres | Fuzzy phone search in admin tools | LIKE '%xyz%' 1.4 s → 30 ms over 100k rows |
-| `trips_rider_status_idx` | Postgres | Rider dashboard "my active trip" | 60 ms → 2 ms |
+| What                                 | Where                     | Why                                                                                                                                            | Measured impact                                 |
+| ------------------------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Online-driver geo index              | Redis GEO `driver:online` | "Who is within 2 km of (x,y)?" is the hottest read; PostGIS would work but every match would pay a network + index hop. Redis stays in sub-ms. | `nearby` p95 fell from 14 ms (PG only) → 0.6 ms |
+| Surge multiplier per zone            | Redis hash `surge:<zone>` | Read on every `POST /trips`; updates from the stream pipeline.                                                                                 | DB read removed; saves ~3 ms per request        |
+| `mv_driver_daily`                    | Postgres mat view         | Admin dashboard's heaviest query. Refreshed nightly.                                                                                           | Daily report 240 ms → 8 ms                      |
+| GIST on `driver_locations(location)` | Postgres                  | Cold queries: "where was driver X last?"                                                                                                       | Geographic SELECT 80 ms → 9 ms                  |
+| GIN trigram on `users(phone)`        | Postgres                  | Fuzzy phone search in admin tools                                                                                                              | LIKE '%xyz%' 1.4 s → 30 ms over 100k rows       |
+| `trips_rider_status_idx`             | Postgres                  | Rider dashboard "my active trip"                                                                                                               | 60 ms → 2 ms                                    |
 
 The Optimisation section of the report (R6) reproduces these with `EXPLAIN
 ANALYZE` outputs and `wrk`/`k6` graphs.

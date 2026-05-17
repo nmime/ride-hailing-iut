@@ -18,7 +18,7 @@ export class MetricsController {
   constructor(
     private readonly metrics: MetricsService,
     @Inject(PG_POOL) private readonly db: Pool,
-    @Inject(REDIS)   private readonly redis: Redis,
+    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   @Public()

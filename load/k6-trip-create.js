@@ -17,33 +17,33 @@ export const options = {
   // Ramp from 0 to 200 RPS over 30s, hold for 1m, ramp down.
   stages: [
     { duration: '30s', target: 100 },
-    { duration: '1m',  target: 200 },
+    { duration: '1m', target: 200 },
     { duration: '30s', target: 0 },
   ],
   thresholds: {
-    http_req_duration: ['p(95)<200'],          // R-NFR latency target
-    http_req_failed:   ['rate<0.01'],
+    http_req_duration: ['p(95)<200'], // R-NFR latency target
+    http_req_failed: ['rate<0.01'],
   },
 };
 
-const BASE  = __ENV.BASE  ?? 'http://localhost';
+const BASE = __ENV.BASE ?? 'http://localhost';
 const TOKEN = __ENV.TOKEN ?? '';
 
 export default function () {
   // Tashkent bbox jitter
-  const lat = 41.30 + Math.random() * 0.06;
-  const lon = 69.22 + Math.random() * 0.10;
+  const lat = 41.3 + Math.random() * 0.06;
+  const lon = 69.22 + Math.random() * 0.1;
 
   const res = http.post(
     `${BASE}/api/trips`,
     JSON.stringify({
-      pickup:  { lat,                 lon },
-      dropoff: { lat: lat + 0.005,    lon: lon + 0.005 },
+      pickup: { lat, lon },
+      dropoff: { lat: lat + 0.005, lon: lon + 0.005 },
     }),
     {
       headers: {
         'content-type': 'application/json',
-        ...(TOKEN ? { 'authorization': `Bearer ${TOKEN}` } : {}),
+        ...(TOKEN ? { authorization: `Bearer ${TOKEN}` } : {}),
       },
       tags: { endpoint: 'POST_/api/trips' },
     },

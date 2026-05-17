@@ -1,13 +1,22 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsString, Matches, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 
 export class SignupDto {
-  @ApiProperty({ enum: ['rider','driver'] })
-  @IsEnum(['rider','driver'])
+  @ApiProperty({ enum: ['rider', 'driver'] })
+  @IsEnum(['rider', 'driver'])
   role!: 'rider' | 'driver';
 
   @ApiProperty()
-  @IsString() @IsNotEmpty()
+  @IsString()
+  @IsNotEmpty()
   full_name!: string;
 
   @ApiProperty()
@@ -24,7 +33,8 @@ export class SignupDto {
 
   @ApiProperty({ required: false, example: 'TX-4242' })
   @ValidateIf((dto: SignupDto) => dto.role === 'driver')
-  @IsString() @MinLength(4)
+  @IsString()
+  @MinLength(4)
   license_number?: string;
 
   @ApiProperty({ required: false, example: '2031-12-31' })

@@ -21,7 +21,9 @@ function requiredEnv(name: string) {
 
 async function main() {
   const dir = resolve(requiredEnv('MIGRATIONS_DIR'));
-  const files = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort();
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
 
   const client = new Client({ connectionString: requiredEnv('DATABASE_URL') });
   await client.connect();
@@ -59,4 +61,7 @@ async function main() {
   console.log('migrations complete');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

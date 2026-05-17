@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+.cache
+.git
+.idea
+.pnpm-store
+coverage
+submission/*.pdf
+*.pdf
+*.zip

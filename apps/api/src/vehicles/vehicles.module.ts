@@ -1,11 +1,23 @@
 import {
-  BadRequestException, Body, ConflictException, Controller, Delete, ForbiddenException, Get,
-  HttpStatus, Inject, Injectable, Module, NotFoundException, Param, ParseUUIDPipe,
-  Patch, Post, Req,
+  BadRequestException,
+  Body,
+  ConflictException,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Module,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Req,
 } from '@nestjs/common';
-import {
-  ApiBearerAuth, ApiOperation, ApiProperty, ApiTags,
-} from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { IsBoolean, IsInt, IsOptional, IsString, Length, Matches, Max, Min } from 'class-validator';
 import type { FastifyRequest } from 'fastify';
 import type { Pool } from 'pg';
@@ -17,51 +29,73 @@ const UUID_PIPE = new ParseUUIDPipe({ errorHttpStatusCode: HttpStatus.UNPROCESSA
 
 class CreateVehicleDto {
   @ApiProperty({ example: '01A123BC' })
-  @IsString() @Length(3, 16)
+  @IsString()
+  @Length(3, 16)
   plate!: string;
 
   @ApiProperty({ example: 'Chevrolet' })
-  @IsString() @Length(1, 64)
+  @IsString()
+  @Length(1, 64)
   make!: string;
 
   @ApiProperty({ example: 'Cobalt' })
-  @IsString() @Length(1, 64)
+  @IsString()
+  @Length(1, 64)
   model!: string;
 
   @ApiProperty({ example: 2022 })
-  @IsInt() @Min(1990) @Max(2100)
+  @IsInt()
+  @Min(1990)
+  @Max(2100)
   year!: number;
 
   @ApiProperty({ example: 'White' })
-  @IsString() @Length(1, 32)
+  @IsString()
+  @Length(1, 32)
   color!: string;
 
   @ApiProperty({ example: 4 })
-  @IsInt() @Min(1) @Max(8)
+  @IsInt()
+  @Min(1)
+  @Max(8)
   capacity!: number;
 }
 
 class UpdateVehicleDto {
   @ApiProperty({ required: false })
-  @IsOptional() @IsString() @Length(1, 64)
+  @IsOptional()
+  @IsString()
+  @Length(1, 64)
   make?: string;
   @ApiProperty({ required: false })
-  @IsOptional() @IsString() @Length(1, 64)
+  @IsOptional()
+  @IsString()
+  @Length(1, 64)
   model?: string;
   @ApiProperty({ required: false })
-  @IsOptional() @Matches(/^[A-Za-z0-9-]{3,16}$/)
+  @IsOptional()
+  @Matches(/^[A-Za-z0-9-]{3,16}$/)
   plate?: string;
   @ApiProperty({ required: false })
-  @IsOptional() @IsString() @Length(1, 32)
+  @IsOptional()
+  @IsString()
+  @Length(1, 32)
   color?: string;
   @ApiProperty({ required: false })
-  @IsOptional() @IsInt() @Min(1990) @Max(2100)
+  @IsOptional()
+  @IsInt()
+  @Min(1990)
+  @Max(2100)
   year?: number;
   @ApiProperty({ required: false })
-  @IsOptional() @IsInt() @Min(1) @Max(8)
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(8)
   capacity?: number;
   @ApiProperty({ required: false })
-  @IsOptional() @IsBoolean()
+  @IsOptional()
+  @IsBoolean()
   is_active?: boolean;
 }
 

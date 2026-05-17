@@ -1,6 +1,6 @@
 # R6 — Cache, Indexing, and Storage Optimisation
 
-This file collects the *before/after* numbers the rubric requires. Run the
+This file collects the _before/after_ numbers the rubric requires. Run the
 queries below before applying each optimisation, then again after, and
 record both. Paste the screenshots / values into §8 of the report.
 
@@ -37,8 +37,8 @@ Record the latency reported by `redis-cli --latency` against the same query.
 
 ### Measured (M2 MBA, Postgres 16 + PostGIS 3.4, Redis 7.2, dataset above)
 
-| | p50 | p95 |
-|---|---|---|
+|                             | p50     | p95     |
+| --------------------------- | ------- | ------- |
 | PostGIS `ST_DWithin` + GiST | 11.3 ms | 18.7 ms |
 | Redis `GEOSEARCH`           | 0.42 ms | 0.81 ms |
 | **Speedup**                 | **27×** | **23×** |
@@ -70,11 +70,11 @@ EXPLAIN (ANALYZE, BUFFERS)
 
 ### Measured
 
-| | Execution time | Buffers (read / hit) |
-|---|---|---|
-| Group-by on raw `trips` × `fare_records` | 312 ms  | 4 312 / 1 105 |
-| `mv_driver_daily` (`pg_cron` refresh)    |   2.1 ms |   12 / 200    |
-| **Speedup** | **148×** | — |
+|                                          | Execution time | Buffers (read / hit) |
+| ---------------------------------------- | -------------- | -------------------- |
+| Group-by on raw `trips` × `fare_records` | 312 ms         | 4 312 / 1 105        |
+| `mv_driver_daily` (`pg_cron` refresh)    | 2.1 ms         | 12 / 200             |
+| **Speedup**                              | **148×**       | —                    |
 
 The materialised view is refreshed every 5 minutes by the cron service,
 which is well below the freshness the admin dashboard requires.
@@ -96,11 +96,11 @@ Use `k6 run load/k6-trip-create.js` after disabling the Redis cache
 (comment out the `redis.hget('surge:zone:...')` line in your fare
 quote and fall back to a Postgres SELECT). Re-enable, re-run.
 
-| | p50 | p95 | error rate |
-|---|---|---|---|
-| Postgres for every quote | 23 ms | 41 ms  | 0.0% |
-| Redis cache (current)    |  9 ms | 16 ms  | 0.0% |
-| **Speedup**              | 2.6× | 2.6× | — |
+|                          | p50   | p95   | error rate |
+| ------------------------ | ----- | ----- | ---------- |
+| Postgres for every quote | 23 ms | 41 ms | 0.0%       |
+| Redis cache (current)    | 9 ms  | 16 ms | 0.0%       |
+| **Speedup**              | 2.6×  | 2.6×  | —          |
 
 ## 5. Ingestor + matcher chain — sustained throughput
 

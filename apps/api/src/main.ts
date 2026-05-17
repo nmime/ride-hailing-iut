@@ -4,10 +4,7 @@
  */
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import {
-  FastifyAdapter,
-  NestFastifyApplication,
-} from '@nestjs/platform-fastify';
+import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify';
 import { HttpStatus, ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from '@fastify/helmet';
@@ -28,12 +25,14 @@ async function bootstrap() {
   // The runtime behaviour is unaffected. https://github.com/fastify/help/issues/1043
   await app.register(helmet as any, { contentSecurityPolicy: false });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    forbidNonWhitelisted: true,
-    transform: true,
-    errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+    }),
+  );
 
   // ---------- Swagger / OpenAPI (R4, R13) ----------
   const config = new DocumentBuilder()

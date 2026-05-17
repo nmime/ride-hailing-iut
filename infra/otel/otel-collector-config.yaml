@@ -27,11 +27,11 @@ exporters:
 service:
   pipelines:
     traces:
-      receivers:  [otlp]
+      receivers: [otlp]
       processors: [resource, batch]
-      exporters:  [otlphttp/tempo]
+      exporters: [otlphttp/tempo]
 
     metrics:
-      receivers:  [otlp]
+      receivers: [otlp]
       processors: [resource, batch]
-      exporters:  [prometheus]
+      exporters: [prometheus]

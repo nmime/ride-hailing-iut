@@ -4,10 +4,10 @@ A consistent-hashing ring with virtual nodes, used by the **matcher** service
 to shard live driver streams across worker replicas.
 
 > **References.**
-> Karger et al., *Consistent Hashing and Random Trees: Distributed Caching
-> Protocols for Relieving Hot Spots on the World Wide Web*, STOC '97.
-> Kleppmann, *Designing Data-Intensive Applications*, ch. 6 — "Partitioning by hash".
-> Xu, *System Design Interview Vol. 1*, ch. 5 — "Consistent hashing".
+> Karger et al., _Consistent Hashing and Random Trees: Distributed Caching
+> Protocols for Relieving Hot Spots on the World Wide Web_, STOC '97.
+> Kleppmann, _Designing Data-Intensive Applications_, ch. 6 — "Partitioning by hash".
+> Xu, _System Design Interview Vol. 1_, ch. 5 — "Consistent hashing".
 
 ## What it is, in two paragraphs
 
@@ -18,7 +18,7 @@ moves only ~1/N of keys**, instead of remapping every key as a naive
 nodes and keys are hashed onto it. To route a key, walk clockwise from the
 key's hash to the first node-position you meet; that node owns the key.
 
-Each "node" is placed at *V* virtual positions (default `V = 128`). Without
+Each "node" is placed at _V_ virtual positions (default `V = 128`). Without
 virtual nodes, three real nodes might land at three points on the ring whose
 arc-lengths are wildly unequal — and the unlucky node would handle 60% of
 traffic. With 128 virtual positions per real node, the law of large numbers
@@ -28,6 +28,7 @@ build cost: O(V·N) entries, O(log(V·N)) lookup.
 ## Why this fits ride-hailing
 
 The matcher service needs to:
+
 - consume driver-location pings from Redpanda (high volume, partitioned by
   `driver_id`),
 - maintain in-process state per driver (recent path, candidate trips),
@@ -48,9 +49,9 @@ import { ConsistentHashRing } from '@ridex/consistent-hash';
 const ring = new ConsistentHashRing({ vnodes: 128 });
 ring.addNode('matcher-0').addNode('matcher-1').addNode('matcher-2');
 
-const owner = ring.getNode('driver-42');   // -> 'matcher-1'
-const k3   = ring.getNodes('driver-42', 3); // top-3 distinct owners
-ring.removeNode('matcher-1');              // ~1/3 of drivers re-home
+const owner = ring.getNode('driver-42'); // -> 'matcher-1'
+const k3 = ring.getNodes('driver-42', 3); // top-3 distinct owners
+ring.removeNode('matcher-1'); // ~1/3 of drivers re-home
 ```
 
 Implementation notes worth defending in viva:
@@ -71,16 +72,16 @@ Implementation notes worth defending in viva:
   hash exceeds every vnode's hash; we then `% length` to wrap to the
   smallest vnode (i.e. the start of the ring). Tested.
 
-## Limitations and what we *didn't* build
+## Limitations and what we _didn't_ build
 
 - **No bounded-load variant.** Real Uber-style systems use the
-  Mirrokni–Thorup–Zadimoghaddam *consistent hashing with bounded load*
+  Mirrokni–Thorup–Zadimoghaddam _consistent hashing with bounded load_
   (Google, 2016) to cap any one node at e.g. 1.25× the average. We don't
   need that for the current course workload, but it is the obvious extension.
 - **No replication factor enforcement.** `getNodes(key, k)` returns up to
   `k` distinct fallbacks, but the matcher only routes to the primary
   today.
-- **No state migration.** When a node leaves, the matcher does *not*
+- **No state migration.** When a node leaves, the matcher does _not_
   hand off in-memory state for the drivers it owned. They re-establish
   on the new owner from the Kafka partition's last committed offset.
   Acceptable because driver state is < 1 second of history.
@@ -92,6 +93,7 @@ pnpm --filter @ridex/consistent-hash test
 ```
 
 Tests verify:
+
 - determinism,
 - the FNV-1a 32-bit empty-string vector (`0x811c9dc5`),
 - distribution within ±15 % across 4 nodes over 20 000 keys,

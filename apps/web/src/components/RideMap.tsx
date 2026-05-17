@@ -35,7 +35,6 @@ declare global {
 const YANDEX_SCRIPT_ID = 'ridex-yandex-maps-api';
 let yandexMapsPromise: Promise<YandexMapsApi> | null = null;
 
-
 const MAP_LEGEND: Array<{ tone: RideMapMarkerTone; label: string }> = [
   { tone: 'pickup', label: 'Pickup' },
   { tone: 'dropoff', label: 'Dropoff' },
@@ -92,7 +91,10 @@ function centerKey(center: LatLon) {
  *  React happens to allocate a new array literal each render. */
 function markerKey(markers: RideMapMarker[]) {
   return markers
-    .map((m) => `${m.id}:${m.position[0].toFixed(5)}:${m.position[1].toFixed(5)}:${m.tone ?? ''}:${m.label}`)
+    .map(
+      (m) =>
+        `${m.id}:${m.position[0].toFixed(5)}:${m.position[1].toFixed(5)}:${m.tone ?? ''}:${m.label}`,
+    )
     .join('|');
 }
 
@@ -142,7 +144,11 @@ function createYandexMarkerElement(marker: RideMapMarker) {
 
 /* ----------------------------- Leaflet ----------------------------- */
 
-function LeafletViewport({ centerKey: key, center, zoom }: {
+function LeafletViewport({
+  centerKey: key,
+  center,
+  zoom,
+}: {
   centerKey: string;
   center: LatLon;
   zoom: number;
@@ -196,7 +202,10 @@ function LeafletRideMap({ center, markers, zoom }: RideMapProps) {
         <LeafletViewport centerKey={cKey} center={center} zoom={zoom} />
         <TileLayer
           attribution="&copy; OpenStreetMap contributors"
-          url={import.meta.env.VITE_MAP_TILE_URL ?? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'}
+          url={
+            import.meta.env.VITE_MAP_TILE_URL ??
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          }
         />
         {markers.map((marker) => (
           <Marker key={marker.id} position={marker.position} icon={leafletIconFor(marker.tone)}>
@@ -263,7 +272,11 @@ function YandexRideMap({ center, markers, zoom }: RideMapProps) {
     return () => {
       cancelled = true;
       if (mapRef.current?.destroy) {
-        try { mapRef.current.destroy(); } catch { /* ignore */ }
+        try {
+          mapRef.current.destroy();
+        } catch {
+          /* ignore */
+        }
       }
       mapRef.current = null;
       markerNodes.current.clear();
@@ -298,7 +311,11 @@ function YandexRideMap({ center, markers, zoom }: RideMapProps) {
       if (existing) {
         // Yandex YMapMarker exposes `update` to move without recreating.
         if (typeof existing.update === 'function') {
-          try { existing.update({ coordinates: toLngLat(m.position) }); } catch { /* ignore */ }
+          try {
+            existing.update({ coordinates: toLngLat(m.position) });
+          } catch {
+            /* ignore */
+          }
         }
       } else {
         const node = new YMapMarker(
@@ -311,7 +328,11 @@ function YandexRideMap({ center, markers, zoom }: RideMapProps) {
     }
     for (const [id, node] of markerNodes.current) {
       if (!seen.has(id)) {
-        try { map.removeChild(node); } catch { /* ignore */ }
+        try {
+          map.removeChild(node);
+        } catch {
+          /* ignore */
+        }
         markerNodes.current.delete(id);
       }
     }

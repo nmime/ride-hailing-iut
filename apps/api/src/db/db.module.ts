@@ -10,11 +10,12 @@ export const PG_POOL = Symbol.for('PG_POOL');
   providers: [
     {
       provide: PG_POOL,
-      useFactory: () => new Pool({
-        connectionString: requiredEnv('DATABASE_URL'),
-        max: 10,
-        idleTimeoutMillis: 30_000,
-      }),
+      useFactory: () =>
+        new Pool({
+          connectionString: requiredEnv('DATABASE_URL'),
+          max: 10,
+          idleTimeoutMillis: 30_000,
+        }),
     },
   ],
   exports: [PG_POOL],

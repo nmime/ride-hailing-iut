@@ -14,19 +14,22 @@ interface DemoMember {
   badge: string;
 }
 
-const DEMO_PASSWORD = (import.meta.env.VITE_DEMO_PASSWORD
-  ?? import.meta.env.VITE_RIDEX_DEMO_PASSWORD
-  ?? '') as string;
+const DEMO_PASSWORD = (import.meta.env.VITE_DEMO_PASSWORD ??
+  import.meta.env.VITE_RIDEX_DEMO_PASSWORD ??
+  '') as string;
 
-const ROLE_CONTEXT: Record<Role, {
-  icon: string;
-  eyebrow: string;
-  title: string;
-  body: string;
-  stats: string[];
-  accent: string;
-  members: DemoMember[];
-}> = {
+const ROLE_CONTEXT: Record<
+  Role,
+  {
+    icon: string;
+    eyebrow: string;
+    title: string;
+    body: string;
+    stats: string[];
+    accent: string;
+    members: DemoMember[];
+  }
+> = {
   rider: {
     icon: '🚕',
     eyebrow: 'Rider workspace',
@@ -35,8 +38,18 @@ const ROLE_CONTEXT: Record<Role, {
     stats: ['Live matching', 'Map + coverage', 'Trip history'],
     accent: 'Passenger flow',
     members: [
-      { name: 'Aziza Rider', title: 'Primary seeded rider', phone: '+998901111111', badge: 'Booking' },
-      { name: 'Bekzod Rider', title: 'Second seeded rider', phone: '+998902222222', badge: 'History' },
+      {
+        name: 'Aziza Rider',
+        title: 'Primary seeded rider',
+        phone: '+998901111111',
+        badge: 'Booking',
+      },
+      {
+        name: 'Bekzod Rider',
+        title: 'Second seeded rider',
+        phone: '+998902222222',
+        badge: 'History',
+      },
     ],
   },
   driver: {
@@ -47,9 +60,24 @@ const ROLE_CONTEXT: Record<Role, {
     stats: ['5s pings', 'Vehicle profile', 'Trip controls'],
     accent: 'Fleet operations',
     members: [
-      { name: 'Davron Driver', title: 'Online seeded driver', phone: '+998903333333', badge: 'Online' },
-      { name: 'Eldor Driver', title: 'Second seeded driver', phone: '+998904444444', badge: 'Online' },
-      { name: 'Farhod Driver', title: 'Standby seeded driver', phone: '+998905555555', badge: 'Standby' },
+      {
+        name: 'Davron Driver',
+        title: 'Online seeded driver',
+        phone: '+998903333333',
+        badge: 'Online',
+      },
+      {
+        name: 'Eldor Driver',
+        title: 'Second seeded driver',
+        phone: '+998904444444',
+        badge: 'Online',
+      },
+      {
+        name: 'Farhod Driver',
+        title: 'Standby seeded driver',
+        phone: '+998905555555',
+        badge: 'Standby',
+      },
     ],
   },
   admin: {
@@ -60,7 +88,12 @@ const ROLE_CONTEXT: Record<Role, {
     stats: ['Surge zones', 'Daily KPIs', 'Secure reports'],
     accent: 'Control room',
     members: [
-      { name: 'Demo Admin', title: 'Seeded administrator', phone: '+998900000000', badge: 'Reporting' },
+      {
+        name: 'Demo Admin',
+        title: 'Seeded administrator',
+        phone: '+998900000000',
+        badge: 'Reporting',
+      },
     ],
   },
 };
@@ -99,7 +132,9 @@ export function AuthGate({ role, children }: AuthGateProps) {
       const next = await api.login({ phone: nextPhone.trim(), password: nextPassword });
       if (next.role !== role) {
         auth.clear();
-        throw new Error(`This account is ${next.role}; open the ${next.role} workspace or choose a ${role} demo member.`);
+        throw new Error(
+          `This account is ${next.role}; open the ${next.role} workspace or choose a ${role} demo member.`,
+        );
       }
       auth.setSession(next);
       setSession(next);
@@ -125,7 +160,9 @@ export function AuthGate({ role, children }: AuthGateProps) {
     <div className={`auth-layout auth-layout-${role}`}>
       <section className="auth-context-card" aria-label={`${roleLabel} access context`}>
         <div className="auth-brand-row">
-          <span className="auth-role-icon" aria-hidden="true">{context.icon}</span>
+          <span className="auth-role-icon" aria-hidden="true">
+            {context.icon}
+          </span>
           <div>
             <p className="eyebrow">{context.eyebrow}</p>
             <strong>{context.accent}</strong>
@@ -134,13 +171,17 @@ export function AuthGate({ role, children }: AuthGateProps) {
         <h1>{context.title}</h1>
         <p>{context.body}</p>
         <div className="auth-context-stats">
-          {context.stats.map((item) => <span key={item}>{item}</span>)}
+          {context.stats.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
         </div>
         <div className="auth-preview-card" aria-hidden="true">
           <span className="auth-preview-dot" />
           <div>
             <strong>{selectedMember.name}</strong>
-            <small>{selectedMember.badge} · {selectedMember.phone}</small>
+            <small>
+              {selectedMember.badge} · {selectedMember.phone}
+            </small>
           </div>
         </div>
       </section>
@@ -150,15 +191,20 @@ export function AuthGate({ role, children }: AuthGateProps) {
           <p className="eyebrow">Secure role entry</p>
           <h1>Sign in as {roleLabel}</h1>
           <p className="muted">
-            Select an existing seeded member below, or enter your own credentials. Demo entry uses the real JWT login endpoint.
+            Select an existing seeded member below, or enter your own credentials. Demo entry uses
+            the real JWT login endpoint.
           </p>
         </div>
 
         {session && session.role !== role && (
           <div className="notice role-switch-notice">
             <strong>Different role active.</strong>
-            <span>Signed in as {session.role}; switch user before opening the {role} workspace.</span>
-            <button type="button" className="link-btn" onClick={auth.clear}>Switch user</button>
+            <span>
+              Signed in as {session.role}; switch user before opening the {role} workspace.
+            </span>
+            <button type="button" className="link-btn" onClick={auth.clear}>
+              Switch user
+            </button>
           </div>
         )}
 
@@ -167,12 +213,20 @@ export function AuthGate({ role, children }: AuthGateProps) {
             <button
               key={member.phone}
               type="button"
-              className={member.phone === selectedPhone ? 'demo-member-card selected' : 'demo-member-card'}
+              className={
+                member.phone === selectedPhone ? 'demo-member-card selected' : 'demo-member-card'
+              }
               onClick={() => chooseMember(member)}
               onDoubleClick={() => chooseMember(member, true)}
               aria-pressed={member.phone === selectedPhone}
             >
-              <span className="demo-member-avatar" aria-hidden="true">{member.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2)}</span>
+              <span className="demo-member-avatar" aria-hidden="true">
+                {member.name
+                  .split(/\s+/)
+                  .map((part) => part[0])
+                  .join('')
+                  .slice(0, 2)}
+              </span>
               <span className="demo-member-copy">
                 <strong>{member.name}</strong>
                 <small>{member.title}</small>
@@ -183,7 +237,10 @@ export function AuthGate({ role, children }: AuthGateProps) {
           ))}
         </div>
 
-        <form className="card stack auth-card" onSubmit={(event) => void submitLogin(phone, password, event)}>
+        <form
+          className="card stack auth-card"
+          onSubmit={(event) => void submitLogin(phone, password, event)}
+        >
           <div className="credential-strip" aria-label="Demo credential summary">
             <span>Demo phone</span>
             <strong>{selectedMember.phone}</strong>
@@ -191,7 +248,11 @@ export function AuthGate({ role, children }: AuthGateProps) {
             <strong>{DEMO_PASSWORD ? DEMO_PASSWORD : 'RIDEX_SEED_PASSWORD'}</strong>
           </div>
 
-          {err && <div className="error" role="alert">{err}</div>}
+          {err && (
+            <div className="error" role="alert">
+              {err}
+            </div>
+          )}
 
           <label htmlFor={`${role}-phone`}>
             Phone
@@ -227,7 +288,11 @@ export function AuthGate({ role, children }: AuthGateProps) {
               type="button"
               disabled={loading || !DEMO_PASSWORD}
               aria-disabled={!DEMO_PASSWORD}
-              title={DEMO_PASSWORD ? `One-click ${roleLabel} demo login` : 'Password is not exposed in this build; enter it manually.'}
+              title={
+                DEMO_PASSWORD
+                  ? `One-click ${roleLabel} demo login`
+                  : 'Password is not exposed in this build; enter it manually.'
+              }
               onClick={() => chooseMember(selectedMember, true)}
             >
               {quickLoginPhone === selectedMember.phone ? 'Opening...' : 'One-click demo'}
@@ -235,7 +300,8 @@ export function AuthGate({ role, children }: AuthGateProps) {
           </div>
           {!DEMO_PASSWORD && (
             <p className="form-hint">
-              Demo password is supplied by the deployment as <code>RIDEX_SEED_PASSWORD</code>; enter it once to keep the seed secret out of source code.
+              Demo password is supplied by the deployment as <code>RIDEX_SEED_PASSWORD</code>; enter
+              it once to keep the seed secret out of source code.
             </p>
           )}
         </form>

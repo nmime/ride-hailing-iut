@@ -9,7 +9,7 @@ describe('DTO validation', () => {
   it('validates nested trip coordinates', async () => {
     const dto = plainToInstance(CreateTripDto, {
       pickup: { lat: 120, lon: 69.279 },
-      dropoff: { lat: 41.330, lon: 69.250 },
+      dropoff: { lat: 41.33, lon: 69.25 },
     });
 
     const errors = await validate(dto);

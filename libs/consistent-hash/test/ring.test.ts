@@ -21,8 +21,7 @@ describe('murmur3_32', () => {
     expect(murmur3_32('a', 0x9747b28c)).toBe(0x7fa09ea6);
     expect(murmur3_32('hello')).toBe(0x248bfa47);
     expect(murmur3_32('abc')).toBe(0xb3dd93fa);
-    expect(murmur3_32('The quick brown fox jumps over the lazy dog'))
-      .toBe(0x2e4ff723);
+    expect(murmur3_32('The quick brown fox jumps over the lazy dog')).toBe(0x2e4ff723);
   });
   it('avalanches on small input changes', () => {
     // Bit-difference between hashes of "abc" and "abd" should be near 16
@@ -78,8 +77,8 @@ describe('ConsistentHashRing', () => {
     // the test stable across machines and Node versions.
     const expected = N / 4;
     for (const n of nodes) {
-      expect(counts[n] / expected).toBeGreaterThan(0.80);
-      expect(counts[n] / expected).toBeLessThan(1.20);
+      expect(counts[n] / expected).toBeGreaterThan(0.8);
+      expect(counts[n] / expected).toBeLessThan(1.2);
     }
   });
 

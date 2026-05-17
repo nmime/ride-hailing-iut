@@ -1,5 +1,11 @@
 import {
-  CanActivate, ExecutionContext, HttpException, HttpStatus, Inject, Injectable, Logger,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { TokenBucket } from '@ridex/ratelimiter';
@@ -24,7 +30,8 @@ export class RateLimitGuard implements CanActivate {
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const skip = this.reflector.getAllAndOverride<boolean>(SKIP_RATELIMIT, [
-      ctx.getHandler(), ctx.getClass(),
+      ctx.getHandler(),
+      ctx.getClass(),
     ]);
     if (skip) return true;
 
@@ -34,7 +41,7 @@ export class RateLimitGuard implements CanActivate {
     const isAuth = req.url?.startsWith('/auth') ?? false;
     const bucket = isAuth ? this.authBucket : this.userBucket;
     const key = isAuth
-      ? `ip:${(req.ip ?? req.socket?.remoteAddress ?? 'unknown')}`
+      ? `ip:${req.ip ?? req.socket?.remoteAddress ?? 'unknown'}`
       : `user:${req.user?.sub ?? req.ip ?? 'anon'}`;
 
     const decision = await bucket.take(key);

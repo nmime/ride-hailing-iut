@@ -40,8 +40,9 @@ export class InMemoryTokenBucketStore implements TokenBucketStore {
       };
     });
     this.inflight.set(key, next);
-    try { return await (next as Promise<{ allowed: boolean; retryAfterMs: number; tokens: number }>); }
-    finally {
+    try {
+      return await (next as Promise<{ allowed: boolean; retryAfterMs: number; tokens: number }>);
+    } finally {
       // Drop the chain head once it's settled, preventing unbounded growth.
       if (this.inflight.get(key) === next) this.inflight.delete(key);
     }

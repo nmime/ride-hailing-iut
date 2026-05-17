@@ -104,7 +104,9 @@ export interface CompletedFare {
 }
 
 const listeners = new Set<() => void>();
-function notifyAuthChange() { listeners.forEach((l) => l()); }
+function notifyAuthChange() {
+  listeners.forEach((l) => l());
+}
 
 export const auth = {
   setSession(session: AuthSession) {
@@ -120,7 +122,9 @@ export const auth = {
     if (!token || !id || !role) return null;
     return { id, role, token };
   },
-  getToken(): string | null { return localStorage.getItem(TOKEN_KEY); },
+  getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY);
+  },
   clear() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_ID_KEY);
@@ -129,13 +133,15 @@ export const auth = {
   },
   subscribe(listener: () => void) {
     listeners.add(listener);
-    return () => { listeners.delete(listener); };
+    return () => {
+      listeners.delete(listener);
+    };
   },
 };
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
-    ...(init?.headers as Record<string, string> ?? {}),
+    ...((init?.headers as Record<string, string>) ?? {}),
   };
   if (init?.body !== undefined && !headers['content-type']) {
     headers['content-type'] = 'application/json';
@@ -151,7 +157,9 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
       const parsed = JSON.parse(text);
       if (parsed?.message) pretty = `${res.status} ${parsed.message}`;
       else pretty = `${res.status} ${text}`;
-    } catch { pretty = `${res.status} ${text}`; }
+    } catch {
+      pretty = `${res.status} ${text}`;
+    }
     throw new Error(pretty);
   }
   if (res.status === 204) return undefined as T;
@@ -161,17 +169,16 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   // auth
   signup: (body: {
-    role: 'rider'|'driver';
+    role: 'rider' | 'driver';
     full_name: string;
     email: string;
     phone: string;
     password: string;
     license_number?: string;
     license_expires_on?: string;
-  }) =>
-    req<AuthSession>('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
-  login:  (body: { phone: string; password: string }) =>
-    req<AuthSession>('/auth/login',  { method: 'POST', body: JSON.stringify(body) }),
+  }) => req<AuthSession>('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
+  login: (body: { phone: string; password: string }) =>
+    req<AuthSession>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
 
   // profile
   me: () => req<Me>('/me'),
@@ -193,7 +200,8 @@ export const api = {
     dropoff_address?: string;
   }) =>
     req<{ id: string; status: string; requested_at: string }>('/trips', {
-      method: 'POST', body: JSON.stringify(body),
+      method: 'POST',
+      body: JSON.stringify(body),
     }),
   listTrips: (params: { status?: string; limit?: number } = {}) => {
     const q = new URLSearchParams();
@@ -202,22 +210,23 @@ export const api = {
     const qs = q.toString();
     return req<TripSummary[]>(`/trips${qs ? `?${qs}` : ''}`);
   },
-  getTrip:    (id: string) => req<TripSummary>(`/trips/${id}`),
+  getTrip: (id: string) => req<TripSummary>(`/trips/${id}`),
   cancelTrip: (id: string) => req<TripSummary>(`/trips/${id}/cancel`, { method: 'POST' }),
-  startTrip:  (id: string) => req<TripSummary>(`/trips/${id}/start`, { method: 'POST' }),
-  completeTrip: (id: string) =>
-    req<CompletedFare>(`/trips/${id}/complete`, { method: 'POST' }),
+  startTrip: (id: string) => req<TripSummary>(`/trips/${id}/start`, { method: 'POST' }),
+  completeTrip: (id: string) => req<CompletedFare>(`/trips/${id}/complete`, { method: 'POST' }),
   rateTrip: (id: string, body: RateTripBody) =>
     req<{ trip_id: string; rating: number }>(`/trips/${id}/rating`, {
-      method: 'POST', body: JSON.stringify(body),
+      method: 'POST',
+      body: JSON.stringify(body),
     }),
 
   // drivers
   setDriverStatus: (id: string, status: 'online' | 'offline' | 'on_trip') =>
     req<{ driverId: string; status: string }>(`/drivers/${id}/status`, {
-      method: 'PATCH', body: JSON.stringify({ status }),
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
     }),
-  nearby:  (lon: number, lat: number, radius_m = 2000) =>
+  nearby: (lon: number, lat: number, radius_m = 2000) =>
     req<NearbyDriver[]>(`/drivers/nearby?lon=${lon}&lat=${lat}&radius_m=${radius_m}`),
 
   // ingest (driver location)
@@ -242,6 +251,6 @@ export const api = {
   },
 
   // admin
-  daily:   () => req<DailyDriverReport[]>('/admin/reports/daily'),
-  surge:   () => req<SurgeZone[]>('/admin/surge'),
+  daily: () => req<DailyDriverReport[]>('/admin/reports/daily'),
+  surge: () => req<SurgeZone[]>('/admin/surge'),
 };

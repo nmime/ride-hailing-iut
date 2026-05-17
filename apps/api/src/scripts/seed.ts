@@ -14,8 +14,7 @@ async function main() {
   const sqlPath = resolve(requiredEnv('SEED_PATH'));
   const seedPassword = requiredEnv('RIDEX_SEED_PASSWORD');
   const passwordHash = await argon2.hash(seedPassword, { type: argon2.argon2id });
-  const sql = readFileSync(sqlPath, 'utf8')
-    .replaceAll('__RIDEX_DEV_PASSWORD_HASH__', passwordHash);
+  const sql = readFileSync(sqlPath, 'utf8').replaceAll('__RIDEX_DEV_PASSWORD_HASH__', passwordHash);
 
   const client = new Client({ connectionString: requiredEnv('DATABASE_URL') });
   await client.connect();
@@ -45,4 +44,7 @@ async function main() {
   console.log(`seeded ${rows.length} online drivers into Redis GEO index`);
   console.log('seed users use the RIDEX_SEED_PASSWORD supplied by the environment');
 }
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

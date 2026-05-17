@@ -30,14 +30,18 @@ function AdminContent() {
     void refresh();
   }, []);
 
-  const totals = useMemo(() => daily.reduce(
-    (acc, item) => ({
-      trips: acc.trips + toNumber(item.trips),
-      km: acc.km + toNumber(item.total_km),
-      revenue: acc.revenue + toNumber(item.gross_revenue),
-    }),
-    { trips: 0, km: 0, revenue: 0 },
-  ), [daily]);
+  const totals = useMemo(
+    () =>
+      daily.reduce(
+        (acc, item) => ({
+          trips: acc.trips + toNumber(item.trips),
+          km: acc.km + toNumber(item.total_km),
+          revenue: acc.revenue + toNumber(item.gross_revenue),
+        }),
+        { trips: 0, km: 0, revenue: 0 },
+      ),
+    [daily],
+  );
 
   async function refresh() {
     setLoading(true);
@@ -59,14 +63,20 @@ function AdminContent() {
         <div>
           <p className="eyebrow">Admin operations</p>
           <h1>Audit marketplace performance</h1>
-          <p>Review surge zones and daily driver performance from authenticated production endpoints.</p>
+          <p>
+            Review surge zones and daily driver performance from authenticated production endpoints.
+          </p>
         </div>
         <button className="btn primary" onClick={refresh} disabled={loading} aria-busy={loading}>
           {loading ? 'Refreshing...' : 'Refresh'}
         </button>
       </section>
 
-      {err && <div className="error" role="alert">{err}</div>}
+      {err && (
+        <div className="error" role="alert">
+          {err}
+        </div>
+      )}
 
       <section className="metric-grid admin-metrics">
         <div className="card">
@@ -95,15 +105,29 @@ function AdminContent() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Name</th><th>Multiplier</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Multiplier</th>
+                </tr>
+              </thead>
               <tbody>
                 {loading && surge.length === 0 ? (
-                  <tr><td colSpan={2}>Loading surge zones...</td></tr>
+                  <tr>
+                    <td colSpan={2}>Loading surge zones...</td>
+                  </tr>
                 ) : surge.length === 0 ? (
-                  <tr><td colSpan={2}>No surge zones returned.</td></tr>
-                ) : surge.map((z) => (
-                  <tr key={z.id}><td>{z.name}</td><td>{toNumber(z.base_multiplier).toFixed(2)}x</td></tr>
-                ))}
+                  <tr>
+                    <td colSpan={2}>No surge zones returned.</td>
+                  </tr>
+                ) : (
+                  surge.map((z) => (
+                    <tr key={z.id}>
+                      <td>{z.name}</td>
+                      <td>{toNumber(z.base_multiplier).toFixed(2)}x</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -116,21 +140,35 @@ function AdminContent() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Driver</th><th>Day</th><th className="numeric">Trips</th><th className="numeric">km</th><th className="numeric">Revenue</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Driver</th>
+                  <th>Day</th>
+                  <th className="numeric">Trips</th>
+                  <th className="numeric">km</th>
+                  <th className="numeric">Revenue</th>
+                </tr>
+              </thead>
               <tbody>
                 {loading && daily.length === 0 ? (
-                  <tr><td colSpan={5}>Loading daily report...</td></tr>
-                ) : daily.length === 0 ? (
-                  <tr><td colSpan={5}>No daily rows returned.</td></tr>
-                ) : daily.map((d, i) => (
-                  <tr key={`${d.driver_id ?? 'unknown'}-${d.day}-${i}`}>
-                    <td>{(d.driver_id ?? '—').slice(0, 8)}</td>
-                    <td>{formatDay(d.day)}</td>
-                    <td className="numeric">{toNumber(d.trips)}</td>
-                    <td className="numeric">{toNumber(d.total_km).toFixed(1)}</td>
-                    <td className="numeric">${toNumber(d.gross_revenue).toFixed(2)}</td>
+                  <tr>
+                    <td colSpan={5}>Loading daily report...</td>
                   </tr>
-                ))}
+                ) : daily.length === 0 ? (
+                  <tr>
+                    <td colSpan={5}>No daily rows returned.</td>
+                  </tr>
+                ) : (
+                  daily.map((d, i) => (
+                    <tr key={`${d.driver_id ?? 'unknown'}-${d.day}-${i}`}>
+                      <td>{(d.driver_id ?? '—').slice(0, 8)}</td>
+                      <td>{formatDay(d.day)}</td>
+                      <td className="numeric">{toNumber(d.trips)}</td>
+                      <td className="numeric">{toNumber(d.total_km).toFixed(1)}</td>
+                      <td className="numeric">${toNumber(d.gross_revenue).toFixed(2)}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
