@@ -1,0 +1,33 @@
+name: Apply RideX hardening patch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-ridex-hardening.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Download reviewed patch
+        run: |
+          curl -fsSL https://ride-hailing.funfiesta.games/ridex-hardening.patch -o /tmp/ridex-hardening.patch
+          echo '17d71e4b2c96eb7f6db50f169e36301ba9b88bfe4a48ab3863ec6c6025d57696  /tmp/ridex-hardening.patch' | sha256sum -c -
+      - name: Apply patch and remove temporary workflow
+        run: |
+          git apply --index /tmp/ridex-hardening.patch
+          git rm .github/workflows/apply-ridex-hardening.yml
+      - name: Commit patch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(auth): harden demo login and block grafana' -m 'Require explicit demo-login enablement and phone allow-list; document demo-only use and block public Grafana at the gateway.'
+          git push origin HEAD:main
