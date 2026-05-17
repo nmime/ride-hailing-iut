@@ -28,6 +28,7 @@
     "@opentelemetry/sdk-node": "^0.51.0",
     "@ridex/consistent-hash": "workspace:*",
     "@ridex/ratelimiter": "workspace:*",
+    "@ridex/service-utils": "workspace:*",
     "argon2": "^0.40.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",

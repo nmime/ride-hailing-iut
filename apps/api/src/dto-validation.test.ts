@@ -22,7 +22,7 @@ describe('DTO validation', () => {
       full_name: 'Davron Driver',
       email: 'davron@example.test',
       phone: '+998901234567',
-      password: 'ChangeMe123!',
+      password: 'ExamplePass123!',
     });
 
     const errors = await validate(dto);

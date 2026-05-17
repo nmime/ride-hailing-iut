@@ -7,8 +7,8 @@ import Redis from 'ioredis';
 import { Kafka } from 'kafkajs';
 import { Pool } from 'pg';
 import pino from 'pino';
+import { onShutdown, requiredEnv, requiredNumberEnv } from '@ridex/service-utils';
 
-import { requiredEnv, requiredNumberEnv } from './env';
 import { SurgeEngine } from './surge-engine';
 
 const log = pino({ level: requiredEnv('LOG_LEVEL'), name: 'surge-worker' });
@@ -43,14 +43,11 @@ async function main() {
 
   log.info('surge-worker running');
 
-  for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.once(signal, async () => {
-      clearInterval(tickTimer);
-      clearInterval(flushTimer);
-      await Promise.allSettled([consumer.disconnect(), redis.quit(), pg.end()]);
-      process.exit(0);
-    });
-  }
+  onShutdown(async () => {
+    clearInterval(tickTimer);
+    clearInterval(flushTimer);
+    await Promise.allSettled([consumer.disconnect(), redis.quit(), pg.end()]);
+  });
 }
 
 main().catch((error) => {

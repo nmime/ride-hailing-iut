@@ -6,8 +6,8 @@ import Redis from 'ioredis';
 import { Kafka } from 'kafkajs';
 import { Pool } from 'pg';
 import pino from 'pino';
+import { onShutdown, requiredEnv, requiredNumberEnv } from '@ridex/service-utils';
 
-import { requiredEnv, requiredNumberEnv } from './env';
 import { buildReplicaRing, createLocationHandler } from './location-consumer';
 import { createTripEventHandler } from './trip-consumer';
 
@@ -46,19 +46,16 @@ async function main() {
 
   log.info({ selfId }, 'matcher running');
 
-  for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.once(signal, async () => {
-      log.info({ signal }, 'shutting down');
-      await Promise.allSettled([
-        tripsConsumer.disconnect(),
-        locationConsumer.disconnect(),
-        producer.disconnect(),
-        redis.quit(),
-        pg.end(),
-      ]);
-      process.exit(0);
-    });
-  }
+  onShutdown(async (signal) => {
+    log.info({ signal }, 'shutting down');
+    await Promise.allSettled([
+      tripsConsumer.disconnect(),
+      locationConsumer.disconnect(),
+      producer.disconnect(),
+      redis.quit(),
+      pg.end(),
+    ]);
+  });
 }
 
 main().catch((error) => {

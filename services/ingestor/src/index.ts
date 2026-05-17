@@ -9,8 +9,8 @@ import Redis from 'ioredis';
 import { Kafka } from 'kafkajs';
 import { Pool } from 'pg';
 import pino from 'pino';
+import { onShutdown, requiredEnv, requiredNumberEnv } from '@ridex/service-utils';
 
-import { requiredEnv, requiredNumberEnv } from './env';
 import {
   DriverNotFoundError,
   registerHealthRoute,
@@ -52,12 +52,9 @@ async function start() {
   await app.listen({ port, host: requiredEnv('INGESTOR_HOST') });
   log.info({ port }, 'ingestor listening');
 
-  for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.once(signal, async () => {
-      await Promise.allSettled([producer.disconnect(), redis.quit(), pg.end(), app.close()]);
-      process.exit(0);
-    });
-  }
+  onShutdown(async () => {
+    await Promise.allSettled([producer.disconnect(), redis.quit(), pg.end(), app.close()]);
+  });
 }
 
 start().catch((error) => {

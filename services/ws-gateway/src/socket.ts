@@ -1,8 +1,8 @@
 import { Pool } from 'pg';
 import pino from 'pino';
 import { Server } from 'socket.io';
+import { JwtPayload, verifyJwt } from '@ridex/service-utils';
 
-import { JwtPayload, verifyJwt } from './auth';
 import { canSubscribeToDriver, canSubscribeToTrip } from './authorization';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

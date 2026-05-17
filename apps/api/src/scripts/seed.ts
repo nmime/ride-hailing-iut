@@ -4,11 +4,7 @@ import { Client } from 'pg';
 import Redis from 'ioredis';
 import argon2 from 'argon2';
 
-function requiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} must be set`);
-  return value;
-}
+import { requiredEnv } from '../common/env';
 
 async function main() {
   const sqlPath = resolve(requiredEnv('SEED_PATH'));

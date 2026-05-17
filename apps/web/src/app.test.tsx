@@ -183,7 +183,7 @@ describe('RideX web API client', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const next = await api.login({ phone: '+998901111111', password: 'ChangeMe123!' });
+    const next = await api.login({ phone: '+998901111111', password: 'ExamplePass123!' });
     auth.setSession(next);
 
     expect(next).toEqual(session);
@@ -192,7 +192,7 @@ describe('RideX web API client', () => {
       '/api/auth/login',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ phone: '+998901111111', password: 'ChangeMe123!' }),
+        body: JSON.stringify({ phone: '+998901111111', password: 'ExamplePass123!' }),
       }),
     );
   });

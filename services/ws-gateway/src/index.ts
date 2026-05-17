@@ -8,8 +8,8 @@ import { Kafka } from 'kafkajs';
 import { Pool } from 'pg';
 import pino from 'pino';
 import { Server } from 'socket.io';
+import { onShutdown, requiredEnv, requiredNumberEnv } from '@ridex/service-utils';
 
-import { requiredEnv, requiredNumberEnv } from './env';
 import { createFanout } from './fanout';
 import { registerSocketHandlers } from './socket';
 
@@ -52,12 +52,10 @@ async function start() {
   const port = requiredNumberEnv('WS_PORT');
   httpServer.listen(port, () => log.info({ port }, 'ws-gateway listening'));
 
-  for (const signal of ['SIGINT', 'SIGTERM']) {
-    process.once(signal, async () => {
-      await Promise.allSettled([consumer.disconnect(), redis.quit(), pg.end()]);
-      httpServer.close(() => process.exit(0));
-    });
-  }
+  onShutdown(async () => {
+    await Promise.allSettled([consumer.disconnect(), redis.quit(), pg.end()]);
+    await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+  });
 }
 
 start().catch((error) => {

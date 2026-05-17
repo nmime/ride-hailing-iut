@@ -13,11 +13,7 @@ import { readdirSync, readFileSync } from 'fs';
 import { join, resolve } from 'path';
 import { Client } from 'pg';
 
-function requiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} must be set`);
-  return value;
-}
+import { requiredEnv } from '../common/env';
 
 async function main() {
   const dir = resolve(requiredEnv('MIGRATIONS_DIR'));

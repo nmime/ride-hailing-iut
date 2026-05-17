@@ -1,6 +1,5 @@
 import { Pool } from 'pg';
-
-import { JwtPayload } from './auth';
+import { JwtPayload } from '@ridex/service-utils';
 
 export async function canSubscribeToTrip(
   pg: Pool,

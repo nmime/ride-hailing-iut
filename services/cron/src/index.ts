@@ -6,8 +6,8 @@ import { mkdirSync } from 'fs';
 import { schedule } from 'node-cron';
 import { Pool } from 'pg';
 import pino from 'pino';
+import { onShutdown, requiredEnv, requiredNumberEnv } from '@ridex/service-utils';
 
-import { requiredEnv, requiredNumberEnv } from './env';
 import { createBatchJobs } from './jobs';
 import { BatchMetrics, startMetricsServer } from './metrics';
 
@@ -42,11 +42,9 @@ schedule(requiredEnv('CRON_HOURLY'), () => {
 
 const metricsServer = startMetricsServer(requiredNumberEnv('CRON_METRICS_PORT'), metrics);
 
-for (const signal of ['SIGINT', 'SIGTERM']) {
-  process.once(signal, async () => {
-    await pg.end();
-    metricsServer.close(() => process.exit(0));
-  });
-}
+onShutdown(async () => {
+  await pg.end();
+  await new Promise<void>((resolve) => metricsServer.close(() => resolve()));
+});
 
 log.info({ tz: 'Asia/Tashkent' }, 'cron scheduler started');

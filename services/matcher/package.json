@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ridex/consistent-hash": "workspace:*",
+    "@ridex/service-utils": "workspace:*",
     "ioredis": "^5.4.1",
     "kafkajs": "^2.2.4",
     "pg": "^8.11.5",

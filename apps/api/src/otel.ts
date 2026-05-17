@@ -8,11 +8,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 
-function requiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} must be set`);
-  return value;
-}
+import { requiredEnv } from './common/env';
 
 const sdk = new NodeSDK({
   serviceName: requiredEnv('OTEL_SERVICE_NAME'),
