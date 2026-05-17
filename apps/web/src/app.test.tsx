@@ -147,12 +147,12 @@ describe('RideX web app shell', () => {
   it('protects role routes with the correct role-specific sign-in form', () => {
     const html = renderRoute('/rider');
 
-    expect(html).toContain('Sign in as Rider');
-    expect(html).toContain('Select an existing seeded member below');
+    expect(html).toContain('Open the Rider workspace');
+    expect(html).toContain('One-click demo signs in through the backend');
     expect(html).toContain('Aziza Rider');
     expect(html).toContain('+998901111111');
     expect(html).toContain('One-click demo');
-    expect(html).toContain('RIDEX_SEED_PASSWORD');
+    expect(html).toContain('Demo passwords are never bundled');
   });
 
   it('renders rider map tools when a rider session exists', () => {
@@ -194,6 +194,25 @@ describe('RideX web API client', () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ phone: '+998901111111', password: 'ExamplePass123!' }),
+      }),
+    );
+  });
+
+  it('supports one-click demo auth without exposing a browser password', async () => {
+    const session: AuthSession = { id: 'rider-1', role: 'rider', token: 'jwt-token' };
+    const fetchMock = vi.fn<[input: RequestInfo | URL, init?: RequestInit], Promise<Response>>(
+      async () => jsonResponse(session),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const next = await api.demoLogin({ phone: '+998901111111', expected_role: 'rider' });
+
+    expect(next).toEqual(session);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/demo-login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ phone: '+998901111111', expected_role: 'rider' }),
       }),
     );
   });

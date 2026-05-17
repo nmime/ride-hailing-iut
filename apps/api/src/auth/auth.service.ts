@@ -1,10 +1,17 @@
-import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  ServiceUnavailableException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Pool } from 'pg';
 import argon2 from 'argon2';
 
 import { PG_POOL } from '../db/db.module';
-import { SignupDto, LoginDto } from './dto';
+import { demoPhonesFromEnv } from './demo-users';
+import { DemoLoginDto, LoginDto, SignupDto } from './dto';
 
 export interface JwtPayload {
   sub: string; // user id
@@ -59,15 +66,40 @@ export class AuthService {
     }
   }
 
-  async login(dto: LoginDto) {
+  login(dto: LoginDto) {
+    return this.loginWithPassword(dto.phone, dto.password);
+  }
+
+  async demoLogin(dto: DemoLoginDto) {
+    if (process.env.RIDEX_DEMO_LOGIN_ENABLED === 'false') {
+      throw new ServiceUnavailableException('demo login is disabled for this deployment');
+    }
+
+    if (!demoPhonesFromEnv().has(dto.phone)) {
+      throw new UnauthorizedException('demo account is not allowed');
+    }
+
+    const seedPassword = process.env.RIDEX_SEED_PASSWORD;
+    if (!seedPassword) {
+      throw new ServiceUnavailableException('demo login is not configured');
+    }
+
+    const session = await this.loginWithPassword(dto.phone, seedPassword);
+    if (dto.expected_role && session.role !== dto.expected_role) {
+      throw new UnauthorizedException(`demo account is ${session.role}, not ${dto.expected_role}`);
+    }
+    return session;
+  }
+
+  private async loginWithPassword(phone: string, password: string) {
     const { rows } = await this.db.query(
       `SELECT id, role, password_hash, is_active
          FROM users WHERE phone = $1`,
-      [dto.phone],
+      [phone],
     );
     const user = rows[0];
     if (!user || !user.is_active) throw new UnauthorizedException('bad credentials');
-    const ok = await argon2.verify(user.password_hash, dto.password);
+    const ok = await argon2.verify(user.password_hash, password);
     if (!ok) throw new UnauthorizedException('bad credentials');
     const token = await this.signToken({ sub: user.id, role: user.role });
     return { id: user.id, role: user.role, token };

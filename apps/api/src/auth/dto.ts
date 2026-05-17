@@ -1,13 +1,16 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MinLength,
   ValidateIf,
 } from 'class-validator';
+
+const ROLES = ['rider', 'driver', 'admin'] as const;
 
 export class SignupDto {
   @ApiProperty({ enum: ['rider', 'driver'] })
@@ -51,4 +54,15 @@ export class LoginDto {
   @ApiProperty()
   @MinLength(8)
   password!: string;
+}
+
+export class DemoLoginDto {
+  @ApiProperty({ example: '+998901111111' })
+  @Matches(/^\+\d{8,15}$/)
+  phone!: string;
+
+  @ApiPropertyOptional({ enum: ROLES })
+  @IsOptional()
+  @IsEnum(ROLES)
+  expected_role?: (typeof ROLES)[number];
 }

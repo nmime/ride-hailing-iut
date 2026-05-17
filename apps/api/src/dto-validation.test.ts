@@ -2,7 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 
-import { SignupDto } from './auth/dto';
+import { DemoLoginDto, SignupDto } from './auth/dto';
 import { CreateTripDto } from './trips/dto/create-trip.dto';
 import { CreateVehicleDto } from './vehicles/vehicle.dto';
 
@@ -30,6 +30,23 @@ describe('DTO validation', () => {
     const properties = errors.map((error) => error.property);
     expect(properties).toContain('license_number');
     expect(properties).toContain('license_expires_on');
+  });
+
+  it('validates one-click demo login input without requiring a password', async () => {
+    const valid = plainToInstance(DemoLoginDto, {
+      phone: '+998901111111',
+      expected_role: 'rider',
+    });
+    await expect(validate(valid)).resolves.toEqual([]);
+
+    const invalid = plainToInstance(DemoLoginDto, {
+      phone: '901111111',
+      expected_role: 'pilot',
+    });
+    const errors = await validate(invalid);
+    expect(errors.map((error) => error.property)).toEqual(
+      expect.arrayContaining(['phone', 'expected_role']),
+    );
   });
 
   it('normalizes and validates vehicle plates', async () => {

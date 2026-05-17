@@ -129,13 +129,20 @@ docker compose exec api node dist/scripts/seed.js
 
 ## Demo Accounts
 
-Seeded users use `RIDEX_SEED_PASSWORD` from `.env`.
+Seeded users use `RIDEX_SEED_PASSWORD` from `.env` for manual login. The web app's
+One-click demo buttons call `POST /api/auth/demo-login`, which signs in allowed seeded
+users server-side without bundling or exposing that password in the browser. Set
+`RIDEX_DEMO_LOGIN_ENABLED=false` to disable this endpoint or `RIDEX_DEMO_LOGIN_PHONES`
+to restrict the comma-separated phone allow-list.
 
-| Role   | Phone           |
-| ------ | --------------- |
-| Admin  | `+998900000000` |
-| Rider  | `+998901111111` |
-| Driver | `+998903333333` |
+| Role   | Phone           | Notes                  |
+| ------ | --------------- | ---------------------- |
+| Admin  | `+998900000000` | Operations dashboard   |
+| Rider  | `+998901111111` | Primary rider demo     |
+| Rider  | `+998902222222` | Secondary rider demo   |
+| Driver | `+998903333333` | Online, active vehicle |
+| Driver | `+998904444444` | Online, active vehicle |
+| Driver | `+998905555555` | Offline standby        |
 
 ## Useful URLs
 

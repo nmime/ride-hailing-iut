@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import { AuthService } from './auth.service';
-import { SignupDto, LoginDto } from './dto';
+import { DemoLoginDto, LoginDto, SignupDto } from './dto';
 import { Public } from './jwt.guard';
 
 @ApiTags('auth')
@@ -26,5 +26,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Exchange phone+password for a JWT' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
+  }
+
+  @Public()
+  @Post('demo-login')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Exchange an allowed seeded demo account for a JWT without exposing the seed password',
+  })
+  @ApiResponse({ status: 200, description: '{ id, role, token }' })
+  @ApiResponse({ status: 401, description: 'demo account is not allowed or role mismatch' })
+  @ApiResponse({ status: 503, description: 'demo login disabled or not configured' })
+  demoLogin(@Body() dto: DemoLoginDto) {
+    return this.auth.demoLogin(dto);
   }
 }

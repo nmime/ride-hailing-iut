@@ -11,6 +11,38 @@ const ROLES = new Set<Role>(['rider', 'driver', 'admin']);
 function isRole(value: string | null): value is Role {
   return value !== null && ROLES.has(value as Role);
 }
+
+export interface ApiErrorBody {
+  statusCode?: number;
+  code?: string;
+  message?: string | string[];
+  trace_id?: string;
+  details?: unknown;
+}
+
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    public readonly code: string,
+    message: string,
+    public readonly details?: unknown,
+    public readonly traceId?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+function readableApiMessage(status: number, parsed: ApiErrorBody | null, fallback: string) {
+  const raw = parsed?.message;
+  const message = Array.isArray(raw) ? raw.join('; ') : raw;
+  if (message) return message;
+  if (fallback.trim()) return fallback.trim();
+  return status === 401
+    ? 'We could not sign you in. Check the selected demo account and try again.'
+    : `Request failed (${status})`;
+}
+
 export interface AuthSession {
   id: string;
   role: Role;
@@ -157,15 +189,19 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { ...init, headers });
   if (!res.ok) {
     const text = await res.text();
-    let pretty = `${res.status}`;
+    let parsed: ApiErrorBody | null = null;
     try {
-      const parsed = JSON.parse(text);
-      if (parsed?.message) pretty = `${res.status} ${parsed.message}`;
-      else pretty = `${res.status} ${text}`;
+      parsed = JSON.parse(text) as ApiErrorBody;
     } catch {
-      pretty = `${res.status} ${text}`;
+      // Keep the raw text as the fallback message below.
     }
-    throw new Error(pretty);
+    throw new ApiError(
+      res.status,
+      parsed?.code ?? 'request_failed',
+      readableApiMessage(res.status, parsed, text),
+      parsed?.details,
+      parsed?.trace_id,
+    );
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
@@ -184,6 +220,8 @@ export const api = {
   }) => req<AuthSession>('/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
   login: (body: { phone: string; password: string }) =>
     req<AuthSession>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  demoLogin: (body: { phone: string; expected_role?: Role }) =>
+    req<AuthSession>('/auth/demo-login', { method: 'POST', body: JSON.stringify(body) }),
 
   // profile
   me: () => req<Me>('/me'),
