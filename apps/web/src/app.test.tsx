@@ -35,6 +35,7 @@ import App from './App';
 import { RatingDialog } from './components/RatingDialog';
 import { api, auth, type AuthSession } from './api/client';
 import { isDriverLocationEvent } from './hooks/useTripSocket';
+import { normalizeVehicleDraft, vehicleSummary } from './domain/vehicle';
 
 function installLocalStorage() {
   const store = new Map<string, string>();
@@ -302,6 +303,33 @@ describe('RideX web API client', () => {
     );
   });
 
+  it('normalizes vehicle drafts before sending them to the API', async () => {
+    auth.setSession({ id: 'driver-1', role: 'driver', token: 'jwt-token' });
+    const fetchMock = vi.fn<[input: RequestInfo | URL, init?: RequestInit], Promise<Response>>(
+      async () => jsonResponse({ id: 'v-1', plate: '01A123BC' }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await api.createVehicle({
+      plate: ' 01a123bc ',
+      make: ' Chevrolet ',
+      model: ' Cobalt ',
+      year: 2022,
+      color: ' White ',
+      capacity: 4,
+    });
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    expect(JSON.parse(String(init?.body))).toEqual({
+      plate: '01A123BC',
+      make: 'Chevrolet',
+      model: 'Cobalt',
+      year: 2022,
+      color: 'White',
+      capacity: 4,
+    });
+  });
+
   it('reads typed admin report and surge endpoints', async () => {
     auth.setSession({ id: 'admin-1', role: 'admin', token: 'jwt-token' });
     const fetchMock = vi.fn<[input: RequestInfo | URL, init?: RequestInit], Promise<Response>>(
@@ -344,6 +372,31 @@ describe('RideX web API client', () => {
       expect.objectContaining({
         headers: expect.objectContaining({ authorization: 'Bearer jwt-token' }),
       }),
+    );
+  });
+});
+
+describe('RideX vehicle domain helpers', () => {
+  it('summarizes and normalizes vehicle form data consistently', () => {
+    expect(
+      normalizeVehicleDraft({
+        plate: ' 01a123bc ',
+        make: ' Chevrolet ',
+        model: ' Cobalt ',
+        year: 2022,
+        color: ' White ',
+        capacity: 4,
+      }),
+    ).toEqual({
+      plate: '01A123BC',
+      make: 'Chevrolet',
+      model: 'Cobalt',
+      year: 2022,
+      color: 'White',
+      capacity: 4,
+    });
+    expect(vehicleSummary({ make: 'Chevrolet', model: 'Cobalt', year: 2022, color: 'White' })).toBe(
+      'Chevrolet Cobalt · 2022 · White',
     );
   });
 });
