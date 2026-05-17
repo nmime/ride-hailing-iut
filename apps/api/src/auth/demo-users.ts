@@ -17,14 +17,10 @@ export const SEEDED_DEMO_USERS: readonly DemoUser[] = [
   { role: 'driver', name: 'Farhod Driver', phone: '+998905555555' },
 ] as const;
 
-const SEEDED_DEMO_PHONES = new Set(SEEDED_DEMO_USERS.map((user) => user.phone));
-
 export function demoPhonesFromEnv(raw = process.env.RIDEX_DEMO_LOGIN_PHONES) {
-  const phones = raw
-    ? raw
-        .split(',')
-        .map((phone) => phone.trim())
-        .filter(Boolean)
-    : [...SEEDED_DEMO_PHONES];
+  const phones = (raw ?? '')
+    .split(',')
+    .map((phone) => phone.trim())
+    .filter(Boolean);
   return new Set(phones);
 }

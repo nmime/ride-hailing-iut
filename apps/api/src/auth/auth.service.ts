@@ -71,11 +71,16 @@ export class AuthService {
   }
 
   async demoLogin(dto: DemoLoginDto) {
-    if (process.env.RIDEX_DEMO_LOGIN_ENABLED === 'false') {
+    if (process.env.RIDEX_DEMO_LOGIN_ENABLED !== 'true') {
       throw new ServiceUnavailableException('demo login is disabled for this deployment');
     }
 
-    if (!demoPhonesFromEnv().has(dto.phone)) {
+    const allowedPhones = demoPhonesFromEnv();
+    if (allowedPhones.size === 0) {
+      throw new ServiceUnavailableException('demo login allow-list is not configured');
+    }
+
+    if (!allowedPhones.has(dto.phone)) {
       throw new UnauthorizedException('demo account is not allowed');
     }
 

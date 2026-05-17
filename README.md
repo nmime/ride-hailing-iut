@@ -131,9 +131,11 @@ docker compose exec api node dist/scripts/seed.js
 
 Seeded users use `RIDEX_SEED_PASSWORD` from `.env` for manual login. The web app's
 One-click demo buttons call `POST /api/auth/demo-login`, which signs in allowed seeded
-users server-side without bundling or exposing that password in the browser. Set
-`RIDEX_DEMO_LOGIN_ENABLED=false` to disable this endpoint or `RIDEX_DEMO_LOGIN_PHONES`
-to restrict the comma-separated phone allow-list.
+users server-side without bundling or exposing that password in the browser. The
+endpoint is disabled unless `RIDEX_DEMO_LOGIN_ENABLED=true` and
+`RIDEX_DEMO_LOGIN_PHONES` contains an explicit comma-separated allow-list. Keep this
+passwordless flow for demo deployments only; production deployments should leave it
+disabled.
 
 | Role   | Phone           | Notes                  |
 | ------ | --------------- | ---------------------- |

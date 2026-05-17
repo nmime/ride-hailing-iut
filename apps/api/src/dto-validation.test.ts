@@ -2,6 +2,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 
+import { demoPhonesFromEnv } from './auth/demo-users';
 import { DemoLoginDto, SignupDto } from './auth/dto';
 import { CreateTripDto } from './trips/dto/create-trip.dto';
 import { CreateVehicleDto } from './vehicles/vehicle.dto';
@@ -47,6 +48,14 @@ describe('DTO validation', () => {
     expect(errors.map((error) => error.property)).toEqual(
       expect.arrayContaining(['phone', 'expected_role']),
     );
+  });
+
+  it('requires an explicit demo login phone allow-list', () => {
+    expect([...demoPhonesFromEnv(undefined)]).toEqual([]);
+    expect([...demoPhonesFromEnv(' +998901111111, ,+998903333333 ')]).toEqual([
+      '+998901111111',
+      '+998903333333',
+    ]);
   });
 
   it('normalizes and validates vehicle plates', async () => {
