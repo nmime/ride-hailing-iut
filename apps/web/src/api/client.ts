@@ -1,3 +1,4 @@
+import { normalizeVehicleDraft } from '../domain/vehicle';
 const BASE = import.meta.env.VITE_API_BASE ?? '/api';
 const INGEST_BASE = import.meta.env.VITE_INGEST_BASE ?? '/ingest';
 
@@ -6,6 +7,10 @@ const USER_ID_KEY = 'ridex_user_id';
 const ROLE_KEY = 'ridex_role';
 
 export type Role = 'rider' | 'driver' | 'admin';
+const ROLES = new Set<Role>(['rider', 'driver', 'admin']);
+function isRole(value: string | null): value is Role {
+  return value !== null && ROLES.has(value as Role);
+}
 export interface AuthSession {
   id: string;
   role: Role;
@@ -118,8 +123,8 @@ export const auth = {
   getSession(): AuthSession | null {
     const token = localStorage.getItem(TOKEN_KEY);
     const id = localStorage.getItem(USER_ID_KEY);
-    const role = localStorage.getItem(ROLE_KEY) as Role | null;
-    if (!token || !id || !role) return null;
+    const role = localStorage.getItem(ROLE_KEY);
+    if (!token || !id || !isRole(role)) return null;
     return { id, role, token };
   },
   getToken(): string | null {
@@ -186,7 +191,10 @@ export const api = {
   // vehicles
   vehicles: () => req<Vehicle[]>('/vehicles'),
   createVehicle: (body: CreateVehicleBody) =>
-    req<Vehicle>('/vehicles', { method: 'POST', body: JSON.stringify(body) }),
+    req<Vehicle>('/vehicles', {
+      method: 'POST',
+      body: JSON.stringify(normalizeVehicleDraft(body)),
+    }),
   updateVehicle: (id: string, body: UpdateVehicleBody) =>
     req<Vehicle>(`/vehicles/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   deleteVehicle: (id: string) =>

@@ -1,3 +1,4 @@
+import { parseJsonMessage } from '@ridex/service-utils';
 import Redis from 'ioredis';
 import { EachMessagePayload, Producer } from 'kafkajs';
 import { Pool } from 'pg';
@@ -28,8 +29,8 @@ export function createTripEventHandler(deps: TripHandlerDeps) {
   return async function handleTripEvent({ message }: EachMessagePayload) {
     if (!message.value) return;
 
-    const evt = JSON.parse(message.value.toString()) as TripRequestedEvent;
-    if (evt.type !== 'trip.requested') return;
+    const evt = parseJsonMessage<TripRequestedEvent>(message, deps.log, { topic: deps.tripTopic });
+    if (!evt || evt.type !== 'trip.requested') return;
 
     const { trip_id: tripId } = evt;
     const pickup = evt.dto?.pickup ?? (await loadTripPickup(deps.pg, tripId));

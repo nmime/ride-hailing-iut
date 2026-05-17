@@ -1,4 +1,5 @@
 import { ConsistentHashRing } from '@ridex/consistent-hash';
+import { parseJsonMessage } from '@ridex/service-utils';
 import { EachMessagePayload } from 'kafkajs';
 import pino from 'pino';
 
@@ -16,7 +17,8 @@ export function createLocationHandler(ring: ConsistentHashRing, selfId: string, 
     const driverId = message.key.toString();
     if (ring.getNode(driverId) !== selfId) return;
 
-    const ping = JSON.parse(message.value.toString());
+    const ping = parseJsonMessage(message, log, { topic: 'driver.location', driverId });
+    if (!ping) return;
     log.debug({ driverId, ping }, 'loc');
   };
 }

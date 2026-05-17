@@ -1,3 +1,4 @@
+import { parseJsonMessage } from '@ridex/service-utils';
 import Redis from 'ioredis';
 import { EachMessagePayload } from 'kafkajs';
 import { Pool } from 'pg';
@@ -51,8 +52,11 @@ export class SurgeEngine {
 
   onTripEvent = async ({ message }: EachMessagePayload) => {
     if (!message.value) return;
-    const evt = JSON.parse(message.value.toString());
-    if (evt.type !== 'trip.requested' || !evt.dto?.pickup) return;
+    const evt = parseJsonMessage<{
+      type?: string;
+      dto?: { pickup?: { lon: number; lat: number } };
+    }>(message, this.log, { topic: 'trip-events' });
+    if (evt?.type !== 'trip.requested' || !evt.dto?.pickup) return;
 
     const zoneId = await this.whichZone(evt.dto.pickup.lon, evt.dto.pickup.lat);
     if (!zoneId) return;

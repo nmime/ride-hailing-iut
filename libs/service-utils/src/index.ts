@@ -4,3 +4,4 @@ export { verifyJwt } from './jwt';
 export type { JwtPayload } from './jwt';
 export { onShutdown } from './lifecycle';
 export type { ShutdownCleanup } from './lifecycle';
+export * from './kafka';

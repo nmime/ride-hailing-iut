@@ -6,14 +6,17 @@ COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml* ./
 COPY apps/api/package.json apps/api/
 COPY libs/consistent-hash/package.json libs/consistent-hash/
 COPY libs/ratelimiter/package.json     libs/ratelimiter/
+COPY libs/service-utils/package.json   libs/service-utils/
 RUN pnpm install --frozen-lockfile=false
 
 FROM deps AS build
 COPY apps/api      apps/api
 COPY libs/consistent-hash libs/consistent-hash
 COPY libs/ratelimiter     libs/ratelimiter
+COPY libs/service-utils   libs/service-utils
 RUN pnpm --filter @ridex/consistent-hash build && \
     pnpm --filter @ridex/ratelimiter     build && \
+    pnpm --filter @ridex/service-utils   build && \
     pnpm --filter @ridex/api             build
 
 FROM node:20-alpine AS runtime
@@ -24,6 +27,7 @@ COPY --from=build /app/node_modules                       node_modules
 COPY --from=build /app/apps/api/node_modules              apps/api/node_modules
 COPY --from=build /app/libs/consistent-hash               libs/consistent-hash
 COPY --from=build /app/libs/ratelimiter                   libs/ratelimiter
+COPY --from=build /app/libs/service-utils                 libs/service-utils
 COPY --from=build /app/apps/api/dist                      apps/api/dist
 COPY --from=build /app/apps/api/package.json              apps/api/package.json
 WORKDIR /app/apps/api
