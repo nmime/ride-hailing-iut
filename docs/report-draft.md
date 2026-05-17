@@ -1,19 +1,20 @@
 ---
-title:  "RideX — A Ride-Hailing Mini-Platform"
-team:   "RideX Team"
-motto:  "Always one stop ahead"
-date:   "May 2026"
+title: 'RideX — A Ride-Hailing Mini-Platform'
+team: 'RideX Team'
+motto: 'Always one stop ahead'
+date: 'May 2026'
 ---
 
 > **How to use this file.** This is a draft of the PDF design report (R1, R2,
-> + the from-scratch component prose for R11). Convert to PDF with
-> `pandoc docs/report-draft.md -o report.pdf --toc -V geometry:margin=1in`.
-> The team owns and rewrites every paragraph below — the rubric punishes
-> AI-generated text the team can't defend.
+>
+> - the from-scratch component prose for R11). Convert to PDF with
+>   `pandoc docs/report-draft.md -o report.pdf --toc -V geometry:margin=1in`.
+>   The team owns and rewrites every paragraph below — the rubric punishes
+>   AI-generated text the team can't defend.
 
 # Cover Page
 
-- **Team:** RideX Team — *Always one stop ahead*
+- **Team:** RideX Team — _Always one stop ahead_
 - **Members:**
   - Lead — Mejenkov Nikita (U2310166) — team lead + backend integration
   - Member — Marat Kinzyabulatov (U2310138) — DevOps + deployment
@@ -50,15 +51,15 @@ load.
 
 ## 3.2 Use cases (≥ 5, with actors)
 
-| # | Actor    | Use case | Primary flow |
-|---|----------|----------|--------------|
-| UC1 | Rider    | Request a ride         | Open app → enter dropoff → tap *Request* → see assigned driver → live ETA → trip ends with fare receipt |
-| UC2 | Driver   | Go online and accept   | Open app → tap *Online* → location streams every 5 s → receive match notification → accept → drive |
-| UC3 | Matcher  | Match driver to rider  | Consume `trip.requested` → query Redis GEO for nearest online drivers → write `trip.matched` |
-| UC4 | Admin    | View live fleet + KPIs | Login → see live driver pins, surge zones, and yesterday's per-driver KPIs (from materialised view) |
-| UC5 | Driver   | Cancel a trip          | Tap cancel before pickup → trip moves to `cancelled_by_driver`, audit log written, rider notified over WS |
-| UC6 | System   | Compute surge          | Stream pipeline reads location and trip events; per zone, raises multiplier when demand/supply > T |
-| UC7 | System   | Nightly aggregates     | Cron at 03:00 refreshes mat views and emits a CSV for accounting |
+| #   | Actor   | Use case               | Primary flow                                                                                              |
+| --- | ------- | ---------------------- | --------------------------------------------------------------------------------------------------------- |
+| UC1 | Rider   | Request a ride         | Open app → enter dropoff → tap _Request_ → see assigned driver → live ETA → trip ends with fare receipt   |
+| UC2 | Driver  | Go online and accept   | Open app → tap _Online_ → location streams every 5 s → receive match notification → accept → drive        |
+| UC3 | Matcher | Match driver to rider  | Consume `trip.requested` → query Redis GEO for nearest online drivers → write `trip.matched`              |
+| UC4 | Admin   | View live fleet + KPIs | Login → see live driver pins, surge zones, and yesterday's per-driver KPIs (from materialised view)       |
+| UC5 | Driver  | Cancel a trip          | Tap cancel before pickup → trip moves to `cancelled_by_driver`, audit log written, rider notified over WS |
+| UC6 | System  | Compute surge          | Stream pipeline reads location and trip events; per zone, raises multiplier when demand/supply > T        |
+| UC7 | System  | Nightly aggregates     | Cron at 03:00 refreshes mat views and emits a CSV for accounting                                          |
 
 ## 3.3 Functional requirements
 
@@ -72,16 +73,16 @@ load.
 
 ## 3.4 Non-functional requirements
 
-| Aspect | Target |
-|---|---|
-| Throughput | 200 trip requests / s sustained, 1 000 / s peak |
-| Latency — `POST /trips` | p50 ≤ 50 ms, p95 ≤ 200 ms (gateway → write → 201) |
-| Latency — match | p50 ≤ 1 s from `requested` to `matched` event delivered over WS |
-| Availability | 99.5 % monthly (single-region, single-AZ for the project) |
-| Durability | No location ping is lost; trip writes are ACID |
-| Security | TLS to the public; bcrypt/argon2id for passwords; JWT with short TTL; SQL via parameterised queries only |
-| Scalability | Adding a matcher replica must reshuffle ≤ ~1/N drivers (R11) |
-| Observability | Every request has a `trace_id` propagated across services |
+| Aspect                  | Target                                                                                                   |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| Throughput              | 200 trip requests / s sustained, 1 000 / s peak                                                          |
+| Latency — `POST /trips` | p50 ≤ 50 ms, p95 ≤ 200 ms (gateway → write → 201)                                                        |
+| Latency — match         | p50 ≤ 1 s from `requested` to `matched` event delivered over WS                                          |
+| Availability            | 99.5 % monthly (single-region, single-AZ for the project)                                                |
+| Durability              | No location ping is lost; trip writes are ACID                                                           |
+| Security                | TLS to the public; bcrypt/argon2id for passwords; JWT with short TTL; SQL via parameterised queries only |
+| Scalability             | Adding a matcher replica must reshuffle ≤ ~1/N drivers (R11)                                             |
+| Observability           | Every request has a `trace_id` propagated across services                                                |
 
 ## 3.5 Out of scope
 
@@ -207,11 +208,11 @@ two materialised views:
 Three stores. Each is justified by a query type that the others would
 serve poorly.
 
-| Store | What it holds | Query type that motivates it |
-|---|---|---|
-| **Postgres + PostGIS** | All persistent business state | OLTP transactions across multiple tables, plus spatial queries (`<->` distance, polygon containment) |
-| **Redis** | Online-driver GEO set, surge cache, WS session state | Sub-ms `GEOSEARCH … BYRADIUS`. Postgres can do this, but every match request would pay a connection/index hop; Redis keeps the hot path in memory. |
-| **Redpanda** | Append-only event log for `driver.location.v1` and `trip.events.v1` | Multiple consumers (matcher, ws-gateway, future analytics) read the same stream independently with replay; a row-store cannot replay at this throughput. |
+| Store                  | What it holds                                                       | Query type that motivates it                                                                                                                             |
+| ---------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Postgres + PostGIS** | All persistent business state                                       | OLTP transactions across multiple tables, plus spatial queries (`<->` distance, polygon containment)                                                     |
+| **Redis**              | Online-driver GEO set, surge cache, WS session state                | Sub-ms `GEOSEARCH … BYRADIUS`. Postgres can do this, but every match request would pay a connection/index hop; Redis keeps the hot path in memory.       |
+| **Redpanda**           | Append-only event log for `driver.location.v1` and `trip.events.v1` | Multiple consumers (matcher, ws-gateway, future analytics) read the same stream independently with replay; a row-store cannot replay at this throughput. |
 
 The spec explicitly accepts Redis (key/value) and PostGIS (spatial) as
 "additional data models." We use both. PostGIS satisfies R5 on its own;
@@ -229,8 +230,8 @@ covered by unit tests, and both are wired into the running system.
 See `libs/consistent-hash/README.md` for the full write-up. Summary:
 
 - **What.** A consistent-hash ring with virtual nodes, ~150 lines of
-  TypeScript implemented from Karger et al. (1997) and *Designing
-  Data-Intensive Applications* ch. 6.
+  TypeScript implemented from Karger et al. (1997) and _Designing
+  Data-Intensive Applications_ ch. 6.
 - **Why.** The matcher service has per-driver in-process state (recent
   path, candidate trips). A naive `hash % N` partitioning would remap
   every driver every time a replica scales; with consistent hashing only
@@ -289,19 +290,19 @@ versions here:
 
 ## 6.1 Service responsibilities
 
-| Service | Runtime | Responsibility | Main dependencies |
-|---|---|---|---|
-| `gateway` | Nginx | Single public entrypoint, path routing, API load balancing, optional TLS termination | api, web, ws-gateway, ingestor, Grafana |
-| `web` | React/Vite served by Nginx | Rider, driver, and admin user interface | Gateway REST, WebSocket, ingest paths |
-| `api` | NestJS + Fastify | Auth, trips, drivers, vehicles, admin reports, metrics, Swagger | Postgres, Redis, Redpanda |
-| `ingestor` | Fastify worker | Accept driver location pings, update Redis GEO, publish location stream | Redis, Redpanda, Postgres |
-| `matcher-0/1` | Node worker | Consume requested trips and online-driver state, assign nearest driver | Redpanda, Redis, Postgres, consistent hash library |
-| `ws-gateway` | Socket.IO | Subscribe clients to trip rooms and fan out trip/location events | Redpanda, Redis, Postgres |
-| `surge-worker` | Node worker | Maintain sliding-window demand/supply ratio and surge cache | Redpanda, Redis, Postgres/PostGIS |
-| `cron` | Node cron worker | Refresh materialized views and export completed-trip CSVs | Postgres, exports volume |
-| `otel-collector` | OTel Collector | Receive traces and OTLP metrics | Tempo, Prometheus |
-| `promtail` | Promtail | Tail Docker container logs | Loki |
-| `grafana` | Grafana | Unified dashboard for metrics, logs, and traces | Prometheus, Loki, Tempo |
+| Service          | Runtime                    | Responsibility                                                                       | Main dependencies                                  |
+| ---------------- | -------------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `gateway`        | Nginx                      | Single public entrypoint, path routing, API load balancing, optional TLS termination | api, web, ws-gateway, ingestor, Grafana            |
+| `web`            | React/Vite served by Nginx | Rider, driver, and admin user interface                                              | Gateway REST, WebSocket, ingest paths              |
+| `api`            | NestJS + Fastify           | Auth, trips, drivers, vehicles, admin reports, metrics, Swagger                      | Postgres, Redis, Redpanda                          |
+| `ingestor`       | Fastify worker             | Accept driver location pings, update Redis GEO, publish location stream              | Redis, Redpanda, Postgres                          |
+| `matcher-0/1`    | Node worker                | Consume requested trips and online-driver state, assign nearest driver               | Redpanda, Redis, Postgres, consistent hash library |
+| `ws-gateway`     | Socket.IO                  | Subscribe clients to trip rooms and fan out trip/location events                     | Redpanda, Redis, Postgres                          |
+| `surge-worker`   | Node worker                | Maintain sliding-window demand/supply ratio and surge cache                          | Redpanda, Redis, Postgres/PostGIS                  |
+| `cron`           | Node cron worker           | Refresh materialized views and export completed-trip CSVs                            | Postgres, exports volume                           |
+| `otel-collector` | OTel Collector             | Receive traces and OTLP metrics                                                      | Tempo, Prometheus                                  |
+| `promtail`       | Promtail                   | Tail Docker container logs                                                           | Loki                                               |
+| `grafana`        | Grafana                    | Unified dashboard for metrics, logs, and traces                                      | Prometheus, Loki, Tempo                            |
 
 The gateway keeps the public surface small. Locally and in production, the
 browser only needs one origin: `/` for the app, `/api/` for REST,
@@ -333,14 +334,14 @@ hot read paths, and WebSocket avoids wasteful polling for trip status.
 
 ## 6.3 Data stores and ownership
 
-| Data | Source of truth | Derived/cache copy | Why |
-|---|---|---|---|
-| Users, drivers, vehicles | Postgres | none | Transactional identity and constraints |
-| Trips and fares | Postgres | trip events in Redpanda | ACID lifecycle state plus replayable event stream |
-| Latest driver location | Postgres `driver_locations` | Redis GEO `driver:online` | Durable latest point plus fast radius search |
-| Surge zones | Postgres/PostGIS | Redis `surge:zone:<id>` hash | Admin persistence plus low-latency fare quote |
-| Daily reports | Postgres materialized views | CSV export volume | Fast admin reads and accounting export |
-| Logs/traces/metrics | Runtime services | Loki/Tempo/Prometheus | Operational debugging and rubric evidence |
+| Data                     | Source of truth             | Derived/cache copy           | Why                                               |
+| ------------------------ | --------------------------- | ---------------------------- | ------------------------------------------------- |
+| Users, drivers, vehicles | Postgres                    | none                         | Transactional identity and constraints            |
+| Trips and fares          | Postgres                    | trip events in Redpanda      | ACID lifecycle state plus replayable event stream |
+| Latest driver location   | Postgres `driver_locations` | Redis GEO `driver:online`    | Durable latest point plus fast radius search      |
+| Surge zones              | Postgres/PostGIS            | Redis `surge:zone:<id>` hash | Admin persistence plus low-latency fare quote     |
+| Daily reports            | Postgres materialized views | CSV export volume            | Fast admin reads and accounting export            |
+| Logs/traces/metrics      | Runtime services            | Loki/Tempo/Prometheus        | Operational debugging and rubric evidence         |
 
 ## 6.4 Failure handling
 
@@ -374,7 +375,7 @@ Schema highlights in §4. Polyglot rationale in §4.3. Indexing and caching
 strategy with measurements is in `docs/architecture.md` §6 — copy the table
 into the report when you finalise it. Reproduce the numbers with
 `EXPLAIN ANALYZE` and `k6 run` and paste the screenshots. Quantitative
-*before/after* is required by R6.
+_before/after_ is required by R6.
 
 ## 8.1 Relational schema highlights
 
@@ -395,17 +396,17 @@ polygon-containment operators.
 
 ## 8.2 Constraints and integrity
 
-| Rule | Enforced by |
-|---|---|
-| Unique email and phone | `users.email`, `users.phone` unique constraints |
-| Driver profile only for driver users | Foreign key from `drivers.user_id` to `users.id` |
-| Vehicle plate uniqueness | Unique `vehicles.plate` |
-| Trip status values | `trip_status` enum |
-| Driver status values | `driver_status` enum |
-| Fare exists once per completed trip | Unique `fare_records.trip_id` |
-| Rating once per trip | Unique `trip_ratings.trip_id` |
-| Driver rating aggregate stays current | `trip_ratings_apply_on_insert` trigger |
-| Spatial lookup performance | GiST indexes on geography columns |
+| Rule                                  | Enforced by                                      |
+| ------------------------------------- | ------------------------------------------------ |
+| Unique email and phone                | `users.email`, `users.phone` unique constraints  |
+| Driver profile only for driver users  | Foreign key from `drivers.user_id` to `users.id` |
+| Vehicle plate uniqueness              | Unique `vehicles.plate`                          |
+| Trip status values                    | `trip_status` enum                               |
+| Driver status values                  | `driver_status` enum                             |
+| Fare exists once per completed trip   | Unique `fare_records.trip_id`                    |
+| Rating once per trip                  | Unique `trip_ratings.trip_id`                    |
+| Driver rating aggregate stays current | `trip_ratings_apply_on_insert` trigger           |
+| Spatial lookup performance            | GiST indexes on geography columns                |
 
 The API uses parameterized SQL through `pg`; no endpoint constructs SQL by
 concatenating user input. DTO validation rejects invalid coordinates before
@@ -413,18 +414,18 @@ they reach the data layer.
 
 ## 8.3 Index and cache decisions
 
-| Path | Optimization | Reason |
-|---|---|---|
-| Nearby drivers | Redis GEO `driver:online` | Driver matching is the hottest read path; in-memory geosearch avoids a PostGIS query on every request |
-| Cold location lookup | GiST index on `driver_locations.location` | Keeps historical/latest spatial checks fast when Redis is cold |
-| Rider active/history view | `trips_rider_status_idx` | Rider dashboard filters by rider and status |
-| Driver active/history view | `trips_driver_status_idx` | Driver dashboard filters by driver and status |
-| Recent trip sorting | `trips_requested_at_idx` | History and admin workflows order by request time |
-| Phone/admin lookup | GIN trigram index on `users.phone` | Supports fuzzy phone search at scale |
-| Daily driver report | `mv_driver_daily` | Pre-aggregates revenue, distance, and trip count |
-| Hourly demand | `mv_hourly_demand` | Supports demand reporting without scanning raw trips |
-| Surge quote | Redis `surge:zone:<id>` | Fare completion reads surge without hitting Postgres |
-| Rate limiting | Redis token bucket state | Two API replicas share the same quota decisions |
+| Path                       | Optimization                              | Reason                                                                                                |
+| -------------------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Nearby drivers             | Redis GEO `driver:online`                 | Driver matching is the hottest read path; in-memory geosearch avoids a PostGIS query on every request |
+| Cold location lookup       | GiST index on `driver_locations.location` | Keeps historical/latest spatial checks fast when Redis is cold                                        |
+| Rider active/history view  | `trips_rider_status_idx`                  | Rider dashboard filters by rider and status                                                           |
+| Driver active/history view | `trips_driver_status_idx`                 | Driver dashboard filters by driver and status                                                         |
+| Recent trip sorting        | `trips_requested_at_idx`                  | History and admin workflows order by request time                                                     |
+| Phone/admin lookup         | GIN trigram index on `users.phone`        | Supports fuzzy phone search at scale                                                                  |
+| Daily driver report        | `mv_driver_daily`                         | Pre-aggregates revenue, distance, and trip count                                                      |
+| Hourly demand              | `mv_hourly_demand`                        | Supports demand reporting without scanning raw trips                                                  |
+| Surge quote                | Redis `surge:zone:<id>`                   | Fare completion reads surge without hitting Postgres                                                  |
+| Rate limiting              | Redis token bucket state                  | Two API replicas share the same quota decisions                                                       |
 
 The measured results in `docs/optimisation.md` show Redis geosearch
 dropping nearby-driver lookup from millisecond-level PostGIS reads to
@@ -435,6 +436,7 @@ single-digit milliseconds on the load-test dataset.
 # 9. Pipeline (R10)
 
 Two pipelines:
+
 - **Stream:** surge multiplier per zone (sliding window over location and trip events).
 - **Batch:** nightly mat-view refresh and CSV export.
 
@@ -477,10 +479,10 @@ tables.
 
 ## 9.3 Event topics
 
-| Topic | Producer | Consumers | Purpose |
-|---|---|---|---|
-| `driver.location.v1` | ingestor | matcher, ws-gateway | Latest driver movement and live map updates |
-| `trip.events.v1` | api, matcher | matcher, ws-gateway, surge-worker | Trip lifecycle, matching, surge demand |
+| Topic                | Producer     | Consumers                         | Purpose                                     |
+| -------------------- | ------------ | --------------------------------- | ------------------------------------------- |
+| `driver.location.v1` | ingestor     | matcher, ws-gateway               | Latest driver movement and live map updates |
+| `trip.events.v1`     | api, matcher | matcher, ws-gateway, surge-worker | Trip lifecycle, matching, surge demand      |
 
 Keys are chosen to preserve locality. Driver-location events are keyed by
 `driver_id`; trip events are keyed by `trip_id`. The matcher also applies
@@ -565,15 +567,15 @@ log query, and one metric graph correlated to a user action.
 
 ## 11.2 Operational checks
 
-| Check | Expected result |
-|---|---|
-| `GET /healthz` | `{"status":"ok"}` |
-| `GET /readyz` | 200 when Postgres, Redis, and Kafka are reachable |
-| `GET /metrics` | Prometheus text exposition |
-| Grafana `/grafana/` | Dashboard folder `RideX` provisioned |
+| Check                  | Expected result                                   |
+| ---------------------- | ------------------------------------------------- |
+| `GET /healthz`         | `{"status":"ok"}`                                 |
+| `GET /readyz`          | 200 when Postgres, Redis, and Kafka are reachable |
+| `GET /metrics`         | Prometheus text exposition                        |
+| Grafana `/grafana/`    | Dashboard folder `RideX` provisioned              |
 | Prometheus target list | OTel collector, Redpanda, Postgres exporter, cron |
-| Loki query | Docker container logs labeled by Compose service |
-| Tempo search | API traces generated by OTel auto-instrumentation |
+| Loki query             | Docker container logs labeled by Compose service  |
+| Tempo search           | API traces generated by OTel auto-instrumentation |
 
 # 12. Testing and Known Limitations
 
@@ -620,16 +622,16 @@ pnpm build
 
 The public API is intentionally small and role-oriented:
 
-| Area | Endpoints | Purpose |
-|---|---|---|
-| Auth | `POST /auth/signup`, `POST /auth/login` | Create riders/drivers and issue JWTs |
-| Profile | `GET /me` | Return the authenticated user and driver profile |
-| Vehicles | `GET/POST/PATCH/DELETE /vehicles` | Driver-owned vehicle management |
-| Drivers | `PATCH /drivers/:id/status`, `GET /drivers/nearby` | Availability and Redis-backed coverage lookup |
-| Trips | `POST /trips`, `GET /trips`, `GET /trips/:id`, lifecycle actions | Rider request flow and driver trip execution |
-| Ratings | `POST /trips/:id/rating` | Rider feedback after completed trips |
-| Admin | `GET /admin/reports/daily`, `GET /admin/surge` | Operational reports and surge overview |
-| Ops | `GET /healthz`, `GET /readyz`, `GET /metrics` | Liveness, readiness, and Prometheus metrics |
+| Area     | Endpoints                                                        | Purpose                                          |
+| -------- | ---------------------------------------------------------------- | ------------------------------------------------ |
+| Auth     | `POST /auth/signup`, `POST /auth/login`                          | Create riders/drivers and issue JWTs             |
+| Profile  | `GET /me`                                                        | Return the authenticated user and driver profile |
+| Vehicles | `GET/POST/PATCH/DELETE /vehicles`                                | Driver-owned vehicle management                  |
+| Drivers  | `PATCH /drivers/:id/status`, `GET /drivers/nearby`               | Availability and Redis-backed coverage lookup    |
+| Trips    | `POST /trips`, `GET /trips`, `GET /trips/:id`, lifecycle actions | Rider request flow and driver trip execution     |
+| Ratings  | `POST /trips/:id/rating`                                         | Rider feedback after completed trips             |
+| Admin    | `GET /admin/reports/daily`, `GET /admin/surge`                   | Operational reports and surge overview           |
+| Ops      | `GET /healthz`, `GET /readyz`, `GET /metrics`                    | Liveness, readiness, and Prometheus metrics      |
 
 Swagger UI is served from `/api/docs` through the gateway, so external
 developers do not need source access to inspect request and response
@@ -670,25 +672,25 @@ reflected by the repository layout and commit history.
 
 # 13. Team Contribution Table
 
-| Member | Modules / files owned | GitHub profile | % |
-|---|---|---|---|
-| Mejenkov Nikita (U2310166) | team lead, integration, realtime services, smoke/load testing, final coordination | `nmime` | 25% |
-| Marat Kinzyabulatov (U2310138) | Docker Compose, gateway, observability stack, shared libraries | `magnasoldier` | 25% |
-| Yunusov Saidamir (U2310295) | database schema, backend API modules, endpoint documentation | `Rimadias2111` | 25% |
-| Timur Miraxmetov (U2310170) | frontend rider/driver/admin flows, UI components, realtime client UX | `m1raksen` | 25% |
+| Member                         | Modules / files owned                                                             | GitHub profile                                  | %   |
+| ------------------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------- | --- |
+| Mejenkov Nikita (U2310166)     | team lead, integration, realtime services, smoke/load testing, final coordination | [nmime](https://github.com/nmime)               | 25% |
+| Marat Kinzyabulatov (U2310138) | Docker Compose, gateway, observability stack, shared libraries                    | [magnasoldier](https://github.com/magnasoldier) | 25% |
+| Yunusov Saidamir (U2310295)    | database schema, backend API modules, endpoint documentation                      | [Rimadias2111](https://github.com/Rimadias2111) | 25% |
+| Timur Miraxmetov (U2310170)    | frontend rider/driver/admin flows, UI components, realtime client UX              | [m1raksen](https://github.com/m1raksen)         | 25% |
 
 Ownership was collaborative, but the areas above reflect the primary
 implementation split used during development.
 
 # 14. References
 
-- Karger, D. et al. (1997). *Consistent Hashing and Random Trees*. STOC.
-- Kleppmann, M. (2017). *Designing Data-Intensive Applications*. O'Reilly. Ch. 6.
-- Xu, A. (2020). *System Design Interview Vol. 1*. Ch. 5.
-- Appleby, A. (2011). *MurmurHash3 / SMHasher*. Public-domain reference and
+- Karger, D. et al. (1997). _Consistent Hashing and Random Trees_. STOC.
+- Kleppmann, M. (2017). _Designing Data-Intensive Applications_. O'Reilly. Ch. 6.
+- Xu, A. (2020). _System Design Interview Vol. 1_. Ch. 5.
+- Appleby, A. (2011). _MurmurHash3 / SMHasher_. Public-domain reference and
   behavioral test-vector source only; RideX implements Murmur3 itself.
   https://github.com/aappleby/smhasher
 - PostGIS Documentation. https://postgis.net/docs/
 - Redpanda Docs. https://docs.redpanda.com
 - OpenTelemetry Spec. https://opentelemetry.io
-- *letsddia-go* — DDIA building blocks reference. https://github.com/arthur-zhang/letsddia-go
+- _letsddia-go_ — DDIA building blocks reference. https://github.com/arthur-zhang/letsddia-go

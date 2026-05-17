@@ -1,44 +1,91 @@
 # Changelog
 
-All notable changes to RideX are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+This changelog follows the commit history on `main` for the two-week RideX
+development window.
 
-## [Unreleased]
+## [2026-05-17]
 
-### Added
-- Scaffold of monorepo: `apps/api` (NestJS+Fastify), `apps/web` (React+Vite), `services/matcher`, `services/ws-gateway`, `services/ingestor`, `libs/consistent-hash`.
-- Initial Postgres + PostGIS migration with `users`, `drivers`, `vehicles`, `trips`, `trip_events`, `surge_zones`, `fare_records`.
-- Redpanda topics: `driver.location.v1`, `trip.events.v1`.
-- Nginx gateway with two `api` replicas behind a single `:80` port.
-- OpenTelemetry collector wired to Tempo / Loki / Prometheus / Grafana.
-- **`libs/ratelimiter`** — second from-scratch component (R11): token-bucket
-  rate limiter with in-memory and Redis (Lua-atomic) backends, 7 property
-  tests, integrated as a global Nest guard.
-- **`/metrics`** Prometheus exposition (R12): in-process registry,
-  `http_server_request_duration_seconds` histogram via interceptor,
-  `ridex_trip_events_total`, `ridex_drivers_online`,
-  `ridex_ratelimit_decisions_total`.
-- **`/me`** endpoint joining `users` × `drivers` for full self-profile.
-- **`/vehicles`** CRUD for drivers with class-validator DTOs and
-  partial-unique active-vehicle handling.
-- **`POST /trips/:id/rating`** with new `trip_ratings` table and a trigger
-  that maintains `drivers.rating_avg` / `rating_count`
-  (migration `0004_trip_ratings.sql`).
-- **Deep `/readyz`** that pings Postgres and Redis (returns 503 when
-  either is down).
-- **Single error envelope** `{statusCode, code, message, trace_id, details?}`
-  via a global `ErrorFilter` reading the active OpenTelemetry span.
-- **Redis surge cache fast-path** in `TripsService.complete()` — reads
-  `surge:zone:<id>` populated by `services/surge-worker` and falls back
-  to PostGIS when the cache is cold.
-- **`db/seed/seed-loadtest.sql`** — generates 1 000 drivers + 100 000
-  trips for R6 EXPLAIN ANALYZE / k6 measurements.
-- `postgres-exporter` service in `docker-compose.yml` for DB metrics.
-- `RATELIMIT_*` env vars documented in `.env.example`.
+- `65b6ab7` Marat - `feat(lib): implement token bucket rate limiter backends and tests`
 
-## [0.1.0] — TBD
+## [2026-05-16]
 
-First end-to-end demo with a rider requesting a trip and a driver completing it.
+- `14d45eb` Nikita - `docs(report): add submission report draft and team ownership table`
 
-## [1.0.0] — TBD
+## [2026-05-15]
 
-Final submission tag (per spec).
+- `ef1f7e0` Nikita - `docs(team): add optimisation notes and contributor summary`
+
+## [2026-05-14]
+
+- `dfbb94a` Marat - `chore(lib): scaffold token bucket rate limiter package`
+- `febeea4` Saidamir - `docs(api): add migration scripts and endpoint reference`
+- `8104a69` Timur - `test(web): add interaction coverage for auth and trip flows`
+
+## [2026-05-13]
+
+- `7f68deb` Marat - `feat(lib): implement consistent hashing ring and tests`
+- `27a8a29` Timur - `feat(realtime): add trip socket hook and ride map`
+- `a439c9c` Saidamir - `feat(api): add error filter, telemetry hook, and validation coverage`
+
+## [2026-05-12]
+
+- `30620b8` Marat - `chore(lib): scaffold consistent hashing package`
+- `fcd957e` Saidamir - `feat(platform): add rate limiting and HTTP metrics`
+- `4cdc1f0` Timur - `feat(trips): add trip history and rating dialog`
+- `b5913f9` Nikita - `docs(flow): add BPMN diagrams for trip lifecycle and stream processing`
+
+## [2026-05-11]
+
+- `e773191` Marat - `feat(obs): add ride operations dashboard panels`
+- `e6988b2` Timur - `feat(web): add API client and UI utility hooks`
+- `3ca2a2c` Saidamir - `feat(trips): implement trip controller and service flows`
+- `3110f25` Nikita - `test(smoke): add end-to-end smoke script and workspace lockfile`
+
+## [2026-05-10]
+
+- `ecf603a` Marat - `feat(obs): provision Grafana datasources and dashboard loader`
+- `331631b` Saidamir - `feat(trips): add trip DTOs and module registration`
+- `c2b7075` Timur - `feat(admin): add admin dashboard shell and vehicle panel`
+- `f7d7c31` Nikita - `test(load): add k6 scenarios for driver pings and trip creation`
+
+## [2026-05-09]
+
+- `2f17a25` Marat - `feat(obs): add Loki and Tempo pipeline configuration`
+- `8e24272` Saidamir - `feat(fleet): add driver and vehicle modules`
+- `d1a0b31` Timur - `feat(driver): add driver workspace and active trip card`
+- `e339ffa` Nikita - `feat(cron): add nightly aggregate refresh worker`
+
+## [2026-05-08]
+
+- `a51ba59` Marat - `feat(obs): add OpenTelemetry collector and Prometheus scrape config`
+- `e825611` Saidamir - `feat(api): wire database, redis, and kafka providers`
+- `50b05ad` Timur - `feat(rider): add landing and rider booking flows`
+- `4a9a730` Nikita - `feat(surge): add stream worker for surge calculations`
+
+## [2026-05-07]
+
+- `bb1c7b8` Marat - `feat(proxy): add nginx gateway and service routing`
+- `ab587d7` Saidamir - `feat(auth): add auth module, DTOs, and JWT guard`
+- `ed23926` Timur - `feat(auth-ui): add auth gate and user menu controls`
+- `6cfbbe9` Nikita - `feat(ws): add websocket gateway for trip events`
+
+## [2026-05-06]
+
+- `bf00f3a` Marat - `chore(infra): add local compose stack for core services`
+- `0050871` Saidamir - `chore(api): scaffold NestJS API service`
+- `ba73c73` Timur - `style(web): add base styles and auth polish`
+- `ef0bfcc` Nikita - `feat(ingestor): add driver location ingestion service`
+
+## [2026-05-05]
+
+- `6a847fa` Marat - `chore(ci): add environment template and bootstrap workflow`
+- `aa87f43` Saidamir - `feat(db): add aggregates, ratings, and outbox migrations`
+- `a909262` Timur - `feat(web): add application shell and entrypoint`
+- `d58f634` Nikita - `feat(matcher): add driver matcher worker`
+
+## [2026-05-04]
+
+- `69d7b0a` Marat - `chore(repo): initialize workspace tooling and ignores`
+- `d48926b` Saidamir - `feat(db): add Postgres extensions and core ride schema`
+- `923ffeb` Timur - `chore(web): scaffold Vite frontend container`
+- `4b768ef` Nikita - `docs(arch): add project overview and useful links`
